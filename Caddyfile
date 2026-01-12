@@ -1,0 +1,26 @@
+{
+    # Global options
+    email admin@builders-tech.com
+}
+
+evolution.builders-tech.com {
+    # Reverse proxy to our backend service
+    reverse_proxy backend:3000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Enable gzip compression
+    encode gzip
+
+    # Healtheck endpoint for Caddy itself (optional)
+    handle /caddy-health {
+        respond "OK" 200
+    }
+
+    # Logging
+    log {
+        output stdout
+        format json
+    }
+}

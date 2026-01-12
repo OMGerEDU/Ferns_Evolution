@@ -1,0 +1,133 @@
+version: '3.8'
+
+services:
+  # Caddy Reverse Proxy (HTTPS)
+  caddy:
+    image: caddy:2-alpine
+    container_name: evolution_caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+    networks:
+      - evolution_net
+
+  # Our Backend Service (Node.js)
+  backend:
+    build: .
+    container_name: evolution_backend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      API_KEY: ${API_KEY}
+      EVOLUTION_API_URL: http://evolution_api:8080
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      WEBHOOK_TARGET_URL: ${WEBHOOK_TARGET_URL}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      evolution_api:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - evolution_net
+
+  # Evolution API (WhatsApp Gateway)
+  evolution_api:
+    image: atendai/evolution-api:v2.2.2
+    container_name: evolution_api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_PORT: "8080"
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://evolution:${POSTGRES_PASSWORD:-evolution_password}@postgres:5432/evolution?schema=public
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/0
+      CACHE_REDIS_PREFIX: "evolution:"
+      WEBHOOK_GLOBAL_URL: ${WEBHOOK_GLOBAL_URL}
+      WEBHOOK_GLOBAL_ENABLED: ${WEBHOOK_GLOBAL_ENABLED:-true}
+      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "true"
+      WEBHOOK_EVENTS: '["CONNECTION_UPDATE","MESSAGES_UPSERT","MESSAGES_UPDATE","SEND_MESSAGE"]'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider --header 'apikey: ${EVOLUTION_API_KEY}' http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - evolution_net
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: evolution_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-evolution_password}
+      POSTGRES_DB: evolution
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolution -d evolution"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - evolution_net
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: evolution_redis
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - evolution_net
+
+networks:
+  evolution_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
