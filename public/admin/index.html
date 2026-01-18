@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evolution Sync - Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Force cache bust -->
+    <link rel="stylesheet" href="style.css?v=2.0">
+    <style>
+        /* CRITICAL INLINE STYLES FOR DOCKER CACHE BUSTING */
+        /* Core */
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-card: #1f2937;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        /* Layout */
+        section {
+            display: none;
+            min-height: 100vh;
+        }
+
+        section.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            width: 100%;
+        }
+
+        /* Navbar */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid #374151;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        /* Stats */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #374151;
+        }
+
+        .stat-card.connected .number {
+            color: #22c55e;
+        }
+
+        .stat-card.disconnected .number {
+            color: #ef4444;
+        }
+
+        .number {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .label {
+            font-size: 0.8rem;
+            color: #9ca3af;
+            text-transform: uppercase;
+            margin-top: 0.5rem;
+        }
+
+        /* General UI */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            border: 1px solid #374151;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        /* Instance List */
+        .instance-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #374151;
+        }
+
+        .instance-row:last-child {
+            border-bottom: none;
+        }
+
+        .instance-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .status-badge.connected {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+        }
+
+        .status-badge.disconnected {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #059669;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid #4b5563;
+            color: #d1d5db;
+        }
+
+        .btn-secondary:hover {
+            border-color: white;
+            color: white;
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            margin-left: 8px;
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: #9ca3af;
+        }
+
+        /* WIZARD */
+        .wizard-container {
+            max-width: 500px;
+            margin: 4rem auto;
+            text-align: center;
+        }
+
+        .wizard-step {
+            display: none;
+        }
+
+        .wizard-step.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .wizard-header {
+            margin-bottom: 2rem;
+        }
+
+        .wizard-header h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .wizard-header p {
+            color: #9ca3af;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #d1d5db;
+            font-size: 0.9rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.8rem;
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            color: white;
+            font-size: 1rem;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .pairing-code-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            color: var(--accent);
+            margin: 2rem 0;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            boarder: 1px dashed var(--accent);
+        }
+
+        .qr-display img {
+            border-radius: 8px;
+            border: 4px solid white;
+            max-width: 250px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid #374151;
+        }
+
+        .modal-actions {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        /* Notifications */
+        #notification-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid #374151;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--accent);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="notification-area"></div>
+
+    <!-- Login -->
+    <section id="login-section" class="active">
+        <div class="container" style="display:flex; justify-content:center; align-items:center; height:100vh;">
+            <div class="card" style="width:100%; max-width:400px; padding:2rem;">
+                <div style="text-align:center; margin-bottom:2rem;">
+                    <h1>Evolution <span>Sync</span></h1>
+                    <p style="color:#9ca3af">Admin Access</p>
+                </div>
+                <form id="login-form">
+                    <div class="input-group">
+                        <label>Username</label>
+                        <input type="text" id="username">
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" id="password">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%">Sign In</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dashboard-section">
+        <nav class="navbar">
+            <div class="logo">Evolution <span>Sync</span></div>
+            <div>
+                <button class="btn btn-secondary" style="margin-right:1rem;" onclick="logout()">Logout</button>
+            </div>
+        </nav>
+
+        <div class="container">
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="number" id="stat-total">0</div>
+                    <div class="label">Total Instances</div>
+                </div>
+                <div class="stat-card connected">
+                    <div class="number" id="stat-connected">0</div>
+                    <div class="label">Connected</div>
+                </div>
+                <div class="stat-card disconnected">
+                    <div class="number" id="stat-disconnected">0</div>
+                    <div class="label">Disconnected</div>
+                </div>
+            </div>
+
+            <!-- Instance List -->
+            <div class="section-header">
+                <h2>Instances</h2>
+                <button class="btn btn-primary" onclick="startWizard()">+ Add Instance</button>
+            </div>
+
+            <div class="card">
+                <div id="instances-list">
+                    <div style="padding:2rem; text-align:center; color:#9ca3af">Loading instances...</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Create Wizard -->
+    <section id="wizard-section">
+        <nav class="navbar">
+            <div class="logo">Evolution <span>Sync</span></div>
+            <button class="btn btn-secondary" onclick="cancelWizard()">Cancel</button>
+        </nav>
+
+        <div class="wizard-container">
+            <!-- Step 1: Config -->
+            <div id="wizard-step-1" class="wizard-step active">
+                <div class="wizard-header">
+                    <h2>Add New Instance</h2>
+                    <p>Enter details to connect a new WhatsApp number.</p>
+                </div>
+                <div class="input-group">
+                    <label>Instance Name</label>
+                    <input type="text" id="wiz-name" placeholder="e.g. support-bot">
+                </div>
+                <div class="input-group">
+                    <label>Phone Number (Optional - for Pairing Code)</label>
+                    <input type="text" id="wiz-phone" placeholder="e.g. 5511999999999">
+                </div>
+                <button class="btn btn-primary" style="width:100%" onclick="submitWizardConfig()">Continue</button>
+            </div>
+
+            <!-- Step 2: Connection (QR / Code) -->
+            <div id="wizard-step-2" class="wizard-step">
+                <div class="wizard-header">
+                    <h2 id="wiz-connect-title">Connect WhatsApp</h2>
+                    <p id="wiz-connect-desc">Scan the QR code or enter the pairing code.</p>
+                </div>
+
+                <div id="wiz-pairing-display" style="display:none">
+                    <p>Enter this code on your phone:</p>
+                    <div class="pairing-code-display" id="wiz-code"></div>
+                    <p style="font-size:0.9rem; color:#9ca3af">Settings > Linked Devices > Link a Device > Link with
+                        phone number</p>
+                </div>
+
+                <div id="wiz-qr-display" class="qr-display" style="display:none; justify-content:center;">
+                    <!-- img inserted here -->
+                </div>
+
+                <div style="margin-top:2rem;">
+                    <div class="loading-spinner"
+                        style="border: 2px solid #374151; border-top-color: var(--accent); width: 24px; height: 24px; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;">
+                    </div>
+                    <p style="margin-top:1rem; color:#9ca3af">Waiting for connection...</p>
+                </div>
+            </div>
+
+            <!-- Step 3: Success -->
+            <div id="wizard-step-3" class="wizard-step">
+                <div style="font-size:4rem; margin-bottom:1rem;">🎉</div>
+                <div class="wizard-header">
+                    <h2>Instance Connected!</h2>
+                    <p>Your instance is now ready to use.</p>
+                </div>
+                <button class="btn btn-primary" style="width:100%" onclick="finishWizard()">Go to Dashboard</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Delete Modal -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0">Delete Instance?</h3>
+            <p style="color:#9ca3af; margin-bottom:1.5rem">Are you sure you want to delete <strong
+                    id="delete-target"></strong>? This cannot be undone.</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=2.0"></script>
+    <style>
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</body>
+
+</html>

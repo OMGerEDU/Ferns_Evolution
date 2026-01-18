@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const config = require('./config');
 const logger = require('./utils/logger');
@@ -6,7 +7,9 @@ const logger = require('./utils/logger');
 // Import routes
 const healthRoutes = require('./routes/health');
 const instanceRoutes = require('./routes/instances');
+
 const messageRoutes = require('./routes/messages');
+const webhookRoutes = require('./routes/webhooks');
 
 // Import middleware
 const authMiddleware = require('./middleware/auth');
@@ -22,11 +25,29 @@ app.use(express.json());
 app.use(requestLogger);
 
 // Health routes (no auth required)
+// Health routes (no auth required)
+app.get(['/', '/health'], (req, res) => res.json({ status: 'ok', service: 'evolution-backend', admin: '/admin' }));
 app.use('/health', healthRoutes);
+
+// Serve Admin Playground
+app.use('/admin', express.static(path.join(__dirname, '../public/admin')));
+
+// Admin Auth Endpoint
+app.post('/admin/auth', (req, res) => {
+    const { username, password } = req.body;
+    // Hardcoded credentials for local playground
+    if (username === 'omger' && password === 'zxcv1234') {
+        return res.json({ success: true, apiKey: process.env.API_KEY });
+    }
+    return res.status(401).json({ success: false, error: 'Invalid credentials' });
+});
 
 // API routes (auth required)
 app.use('/api/instances', authMiddleware, instanceRoutes);
 app.use('/api/messages', authMiddleware, messageRoutes);
+
+// Webhook routes (no auth token required, verify signature in future)
+app.use('/api/webhooks', webhookRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);

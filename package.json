@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "healthcheck": "curl -f http://localhost:3000/health || exit 1"
+    "healthcheck": "curl -f http://localhost:3000/health || exit 1",
+    "test:external": "node scripts/test_external.js",
+    "test:all": "node scripts/test_all.js"
   },
   "keywords": [
     "evolution-api",

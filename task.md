@@ -12,7 +12,7 @@
 - [ ] VPS Provisioning
     - [ ] Provision VPS (4GB+ RAM, Ubuntu 22.04)
     - [ ] Install Docker & Docker Compose
-    - [ ] Configure firewall (allow 80, 443, 8080)
+    - [ ] Configure firewall (allow 3101, 8091)
 - [ ] Evolution API Deployment
     - [ ] Create `docker-compose.yml` with Postgres/Redis
     - [ ] Deploy Evolution API container

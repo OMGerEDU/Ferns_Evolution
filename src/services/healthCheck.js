@@ -8,9 +8,17 @@ const logger = require('../utils/logger');
 async function checkEvolution() {
     try {
         const start = Date.now();
-        const response = await axios.get(`${config.evolution.url}/health`, {
-            timeout: 5000,
-        });
+        let response;
+        try {
+            response = await axios.get(`${config.evolution.url}/health`, { timeout: 5000 });
+        } catch (error) {
+            // If /health returns 404, try root path /
+            if (error.response?.status === 404) {
+                response = await axios.get(`${config.evolution.url}/`, { timeout: 5000 });
+            } else {
+                throw error;
+            }
+        }
         const latency = Date.now() - start;
 
         return {
@@ -51,6 +59,7 @@ async function checkPostgres() {
         });
 
         socket.on('error', (err) => {
+            logger.error(`Postgres health check failed: ${err.message}`, { host: postgres.host, port: postgres.port });
             resolve({ healthy: false, error: err.message });
         });
 
@@ -83,6 +92,7 @@ async function checkRedis() {
         });
 
         socket.on('error', (err) => {
+            logger.error(`Redis health check failed: ${err.message}`, { host: redis.host, port: redis.port });
             resolve({ healthy: false, error: err.message });
         });
 

@@ -20,8 +20,9 @@ RUN apk add --no-cache curl
 # Copy from builder
 COPY --from=builder /app/node_modules ./node_modules
 
-# Copy source code
-COPY src ./src
+# Copy source code and package files
+COPY src/ ./src/
+COPY public/ ./public/
 COPY package.json ./
 
 # Create non-root user

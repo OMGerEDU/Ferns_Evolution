@@ -50,9 +50,13 @@ router.post('/text', async (req, res, next) => {
         });
     } catch (error) {
         if (error.response) {
+            const errorData = error.response.data;
+            const evolutionMessage = errorData?.response?.message || errorData?.message || error.message;
+            const finalMessage = Array.isArray(evolutionMessage) ? evolutionMessage.join(', ') : evolutionMessage;
+
             return res.status(error.response.status).json({
                 success: false,
-                error: error.response.data?.message || error.message,
+                error: finalMessage,
                 code: 'EVOLUTION_ERROR',
             });
         }
@@ -110,9 +114,13 @@ router.post('/media', async (req, res, next) => {
         });
     } catch (error) {
         if (error.response) {
+            const errorData = error.response.data;
+            const evolutionMessage = errorData?.response?.message || errorData?.message || error.message;
+            const finalMessage = Array.isArray(evolutionMessage) ? evolutionMessage.join(', ') : evolutionMessage;
+
             return res.status(error.response.status).json({
                 success: false,
-                error: error.response.data?.message || error.message,
+                error: finalMessage,
                 code: 'EVOLUTION_ERROR',
             });
         }

@@ -9,7 +9,7 @@ const logger = require('../utils/logger');
  */
 router.post('/', async (req, res, next) => {
     try {
-        const { instanceName, qrcode, integration } = req.body;
+        const { instanceName, qrcode, integration, number } = req.body;
 
         if (!instanceName) {
             return res.status(400).json({
@@ -19,23 +19,69 @@ router.post('/', async (req, res, next) => {
             });
         }
 
-        logger.info('Creating instance', { instanceName });
+        logger.info('Creating instance', { instanceName, integration, hasNumber: !!number });
 
         const result = await evolution.createInstance(instanceName, {
             qrcode,
             integration,
+            number,
         });
+
+        // Debug log
+        logger.info('Initial Create Response', {
+            keys: Object.keys(result),
+            qrcode: result.qrcode
+        });
+
+        // FIX: If Evolution returns empty QR/Pairing code, fetch it explicitly
+        // This handles cases where "count: 0" is returned immediately
+        let finalResult = result;
+
+        const hasQr = result.qrcode && (result.qrcode.base64 || result.qrcode.code);
+        const hasPairing = !!result.pairingCode;
+
+        if (!hasQr && !hasPairing) {
+            logger.info('Creation returned no QR/Pairing code. Triggering explicit connect...', { instanceName });
+            try {
+                // Wait 7 seconds - optimal time for Baileys to initialize
+                await new Promise(resolve => setTimeout(resolve, 10000));
+
+                const connectData = await evolution.connect(instanceName);
+
+                logger.info('Explicit connect data received', {
+                    dataKeys: Object.keys(connectData || {}),
+                    pairingCode: connectData?.pairingCode,
+                    qrCount: connectData?.count
+                });
+
+                // Merge the new data carefully
+                // The connect endpoint returns { pairingCode: '...', code: '...', base64: '...' }
+                finalResult = {
+                    ...result,
+                    ...connectData,
+                    // Ensure qrcode object is populated if base64 is present at top level
+                    qrcode: connectData.base64 ? { base64: connectData.base64 } : result.qrcode
+                };
+
+            } catch (err) {
+                logger.warn('Failed to fetch explicit connection state', { error: err.message });
+            }
+        }
 
         res.status(201).json({
             success: true,
-            data: result,
+            data: finalResult,
         });
     } catch (error) {
         // Handle Evolution API errors
         if (error.response) {
+            const errorData = error.response.data;
+            const evolutionMessage = errorData?.response?.message || errorData?.message || error.message;
+            const finalMessage = Array.isArray(evolutionMessage) ? evolutionMessage.join(', ') : evolutionMessage;
+
             return res.status(error.response.status).json({
                 success: false,
-                error: error.response.data?.message || error.message,
+                error: finalMessage,
                 code: 'EVOLUTION_ERROR',
             });
         }

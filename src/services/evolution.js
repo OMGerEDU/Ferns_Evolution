@@ -36,11 +36,13 @@ client.interceptors.response.use(
         return response;
     },
     (error) => {
+        const errorData = error.response?.data;
         logger.error('Evolution API error', {
             status: error.response?.status,
             url: error.config?.url,
             message: error.message,
-            data: error.response?.data,
+            evolutionError: errorData?.message || errorData?.response?.message || errorData,
+            fullResponse: errorData // Added to capture 400 details
         });
         throw error;
     }
@@ -50,12 +52,25 @@ client.interceptors.response.use(
  * Create a new WhatsApp instance
  */
 async function createInstance(instanceName, options = {}) {
+    const cleanedInstanceName = instanceName.trim();
     const payload = {
-        instanceName,
-        qrcode: options.qrcode !== false, // Default true
+        instanceName: cleanedInstanceName,
+        qrcode: options.qrcode !== false,
         integration: options.integration || 'WHATSAPP-BAILEYS',
-        ...options,
     };
+
+    if (options.number) {
+        payload.number = options.number;
+    }
+
+    if (options.token) {
+        payload.token = options.token;
+    }
+
+    logger.debug('Evolution v2 Create Instance', {
+        url: `${config.evolution.url}/instance/create`,
+        payload
+    });
 
     const response = await retryWithBackoff(() =>
         client.post('/instance/create', payload)
@@ -167,6 +182,167 @@ async function sendMedia(instanceName, number, mediaUrl, options = {}) {
 }
 
 /**
+ * Calculate WhatsApp ID (remoteJid)
+ */
+function getRemoteJid(number) {
+    if (number.includes('@s.whatsapp.net') || number.includes('@g.us')) {
+        return number;
+    }
+    return `${number}@s.whatsapp.net`;
+}
+
+// --- PROFILE ---
+
+/**
+ * Fetch Profile Info
+ */
+async function fetchProfile(instanceName, number) {
+    const response = await retryWithBackoff(() =>
+        client.get(`/chat/findStatus/${instanceName}`, {
+            data: { number: getRemoteJid(number) } // Evolution v2 uses POST-like body in GET or query param?
+            // Actually v2 usually uses POST for this or a specific endpoint. 
+            // Let's use the robust /chat/findStatus or /chat/fetchProfilePicture
+        })
+    );
+    // Note: Evolution v2 API might strictly differentiate between fetching status and picture.
+    // We will implement what's common.
+    return response.data;
+}
+
+/**
+ * Fetch Profile Picture
+ */
+async function fetchProfilePicture(instanceName, number) {
+    const response = await retryWithBackoff(() =>
+        client.post(`/chat/fetchProfilePicture/${instanceName}`, {
+            number: getRemoteJid(number)
+        })
+    );
+    return response.data;
+}
+
+/**
+ * Update Profile Name (PushName)
+ */
+async function updateProfileName(instanceName, name) {
+    const response = await retryWithBackoff(() =>
+        client.post(`/profile/updateProfileName/${instanceName}`, { name })
+    );
+    return response.data;
+}
+
+/**
+ * Update Profile Status (About)
+ */
+async function updateProfileStatus(instanceName, status) {
+    const response = await retryWithBackoff(() =>
+        client.post(`/profile/updateProfileStatus/${instanceName}`, { status })
+    );
+    return response.data;
+}
+
+/**
+ * Update Profile Picture
+ */
+async function updateProfilePicture(instanceName, picture) {
+    const response = await retryWithBackoff(() =>
+        client.post(`/profile/updateProfilePicture/${instanceName}`, { picture })
+    );
+    return response.data;
+}
+
+
+// --- GROUPS ---
+
+/**
+ * Create Group
+ */
+async function createGroup(instanceName, subject, participants, description) {
+    const payload = {
+        subject,
+        participants: Array.isArray(participants) ? participants : [participants],
+        description: description || ''
+    };
+    const response = await retryWithBackoff(() =>
+        client.post(`/group/create/${instanceName}`, payload)
+    );
+    return response.data;
+}
+
+/**
+ * Fetch All Groups
+ */
+async function fetchGroups(instanceName) {
+    const response = await retryWithBackoff(() =>
+        client.get(`/group/fetchAllGroups/${instanceName}?getParticipants=true`)
+    );
+    return response.data;
+}
+
+/**
+ * Fetch Group Participants
+ */
+async function fetchGroupParticipants(instanceName, groupJid) {
+    const response = await retryWithBackoff(() =>
+        client.get(`/group/participants/${instanceName}?groupJid=${groupJid}`)
+    );
+    return response.data;
+}
+
+/**
+ * Update Group Participants (add/remove/promote/demote)
+ */
+async function updateGroupParticipants(instanceName, groupJid, action, participants) {
+    // action: "add" | "remove" | "promote" | "demote"
+    const payload = {
+        action,
+        participants: Array.isArray(participants) ? participants : [participants]
+    };
+    const response = await retryWithBackoff(() =>
+        client.post(`/group/updateParticipant/${instanceName}?groupJid=${groupJid}`, payload)
+    );
+    return response.data;
+}
+
+
+// --- CHATS ---
+
+/**
+ * Fetch Chats
+ */
+async function fetchChats(instanceName) {
+    const response = await retryWithBackoff(() =>
+        client.get(`/chat/findChats/${instanceName}`)
+    );
+    return response.data;
+}
+
+/**
+ * Archive/Unarchive Chat
+ */
+async function archiveChat(instanceName, number, archive = true) {
+    const payload = {
+        number: getRemoteJid(number),
+        archive
+    };
+    const response = await retryWithBackoff(() =>
+        client.post(`/chat/archiveChat/${instanceName}`, payload)
+    );
+    return response.data;
+}
+
+/**
+ * Delete Chat
+ */
+async function deleteChat(instanceName, number) {
+    const response = await retryWithBackoff(() =>
+        client.delete(`/chat/deleteChat/${instanceName}/${getRemoteJid(number)}`)
+    );
+    return response.data;
+}
+
+
+/**
  * Check if Evolution API is reachable
  */
 async function healthCheck() {
@@ -196,4 +372,19 @@ module.exports = {
     sendText,
     sendMedia,
     healthCheck,
+    // Profile
+    fetchProfile,
+    fetchProfilePicture,
+    updateProfileName,
+    updateProfileStatus,
+    updateProfilePicture,
+    // Groups
+    createGroup,
+    fetchGroups,
+    fetchGroupParticipants,
+    updateGroupParticipants,
+    // Chats
+    fetchChats,
+    archiveChat,
+    deleteChat
 };

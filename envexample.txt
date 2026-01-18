@@ -1,0 +1,40 @@
+# Evolution Backend - Environment Configuration
+# Generated for local development/testing
+
+# ============================================
+# Backend Service API Key
+# ============================================
+# Use this key when calling YOUR backend endpoints
+API_KEY=
+
+# ============================================
+# Evolution API Key
+# ============================================
+# This secures the Evolution WhatsApp API
+EVOLUTION_API_KEY=
+
+# ============================================
+# Webhook Configuration
+# ============================================
+# Where Evolution sends webhook events
+# For local testing without AdminPanel, leave as placeholder
+# Evolution sends events directly to your Admin Panel here:
+WEBHOOK_GLOBAL_URL=https://evolution.omger.cloud/api/webhooks/evolution
+WEBHOOK_GLOBAL_ENABLED=true
+
+# (Optional/Future use)
+WEBHOOK_TARGET_URL=https://evolution.omger.cloud/api/webhooks/evolution
+
+# HMAC signing secret (optional)
+WEBHOOK_SECRET=
+
+# ============================================
+# Database
+# ============================================
+POSTGRES_PASSWORD=password
+# ============================================
+# Cloudflare Tunnel Configuration
+# ============================================
+# Get your token from Cloudflare Zero Trust Dashboard
+CLOUDFLARE_TUNNEL_TOKEN=
+

@@ -2,7 +2,7 @@ const axios = require('axios');
 const https = require('https');
 require('dotenv').config();
 
-const BASE_URL = process.env.QA_URL || 'https://evolution.builders-tech.com';
+const BASE_URL = process.env.QA_URL || 'https://evolution.builders-tech.com:3101';
 const API_KEY = process.env.API_KEY;
 
 if (!API_KEY) {
