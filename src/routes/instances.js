@@ -33,46 +33,70 @@ router.post('/', async (req, res, next) => {
             qrcode: result.qrcode
         });
 
-        // FIX: Evolution v2 sends QR codes via QRCODE_UPDATED webhook, not in the create response
-        // We need to poll the webhook store for the QR code
+        // FIX: Evolution v2 requires explicit /instance/connect call to generate QR
+        // The qrcode:true parameter in create only enables the feature, doesn't generate it
         let finalResult = result;
 
         const hasQr = result.qrcode && (result.qrcode.base64 || result.qrcode.code);
         const hasPairing = !!result.pairingCode;
 
         if (!hasQr && !hasPairing) {
-            logger.info('Waiting for QR/Pairing code via webhook...', { instanceName });
+            logger.info('Triggering QR generation via connect endpoint...', { instanceName });
 
-            // Import the webhook store
-            const { qrCodeStore } = require('./webhooks');
+            try {
+                // Call connect() to trigger QR generation
+                const connectData = await evolution.connect(instanceName);
 
-            // Poll for up to 15 seconds
-            const maxAttempts = 30; // 30 * 500ms = 15 seconds
-            let attempts = 0;
+                logger.info('Connect response received', {
+                    hasBase64: !!connectData.base64,
+                    hasPairingCode: !!connectData.pairingCode,
+                    hasCode: !!connectData.code,
+                    count: connectData.count
+                });
 
-            while (attempts < maxAttempts) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-
-                const qrData = qrCodeStore.get(instanceName);
-                if (qrData && (qrData.qrcode || qrData.pairingCode)) {
-                    logger.info('QR/Pairing code received from webhook!', {
-                        hasQr: !!qrData.qrcode,
-                        hasPairing: !!qrData.pairingCode
-                    });
-
+                // If we got QR/pairing code directly, use it
+                if (connectData.base64 || connectData.pairingCode || connectData.code) {
                     finalResult = {
                         ...result,
-                        qrcode: qrData.qrcode ? { base64: qrData.qrcode } : result.qrcode,
-                        pairingCode: qrData.pairingCode,
-                        code: qrData.code
+                        qrcode: connectData.base64 ? { base64: connectData.base64 } : result.qrcode,
+                        pairingCode: connectData.pairingCode,
+                        code: connectData.code
                     };
-                    break;
-                }
-                attempts++;
-            }
+                } else {
+                    // Otherwise, poll webhook store for up to 10 seconds
+                    logger.info('Polling webhook store for QR code...', { instanceName });
+                    const { qrCodeStore } = require('./webhooks');
 
-            if (attempts >= maxAttempts) {
-                logger.warn('Timeout waiting for QR code from webhook', { instanceName });
+                    const maxAttempts = 20; // 20 * 500ms = 10 seconds
+                    let attempts = 0;
+
+                    while (attempts < maxAttempts) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+
+                        const qrData = qrCodeStore.get(instanceName);
+                        if (qrData && (qrData.qrcode || qrData.pairingCode)) {
+                            logger.info('QR/Pairing code received from webhook!', {
+                                hasQr: !!qrData.qrcode,
+                                hasPairing: !!qrData.pairingCode
+                            });
+
+                            finalResult = {
+                                ...result,
+                                qrcode: qrData.qrcode ? { base64: qrData.qrcode } : result.qrcode,
+                                pairingCode: qrData.pairingCode,
+                                code: qrData.code
+                            };
+                            break;
+                        }
+                        attempts++;
+                    }
+
+                    if (attempts >= maxAttempts) {
+                        logger.warn('Timeout waiting for QR code', { instanceName });
+                    }
+                }
+            } catch (err) {
+                logger.error('Failed to generate QR code', { error: err.message, stack: err.stack });
             }
         }
 

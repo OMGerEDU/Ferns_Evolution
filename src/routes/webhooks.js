@@ -19,10 +19,12 @@ router.post('/evolution/:event?', async (req, res) => {
         const data = req.body;
 
         // Log the webhook
+        // DETAILED DEBUG LOG
         logger.info(`Webhook received: ${event}`, {
             event,
             instance: data.instance,
-            type: data.type
+            type: data.type,
+            fullBody: JSON.stringify(data).substring(0, 500) // First 500 chars
         });
 
         // Handle QRCODE_UPDATED event

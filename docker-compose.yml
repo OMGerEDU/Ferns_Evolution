@@ -94,6 +94,8 @@ services:
       WEBHOOK_EVENTS_MESSAGES_UPDATE: "true"
       WEBHOOK_EVENTS_MESSAGES_SET: "true"
       WEBHOOK_EVENTS_SEND_MESSAGE: "true"
+      # WhatsApp Web version - required for QR code generation
+      CONFIG_SESSION_PHONE_VERSION: "2.3000.1028716292"
     depends_on:
       postgres:
         condition: service_healthy

@@ -145,6 +145,7 @@ window.restartWizard = (name) => {
 
 window.cancelWizard = () => {
     stopPolling();
+    stopQRPolling();
     showSection('dashboard');
     loadDashboard();
 };
@@ -208,20 +209,45 @@ function handleConnectionResponse(data) {
         qrDisplay.style.display = 'flex';
         qrDisplay.innerHTML = `<img src="${data.qrcode?.base64 || data.base64}" alt="QR">`;
     } else {
-        // Fallback: Fetch QR separately if needed
-        fetchQR(wizardInstanceName);
+        // Fallback: Start polling for QR
+        startQRPolling(wizardInstanceName);
     }
 }
 
-async function fetchQR(name) {
-    try {
-        const res = await fetchAPI(`/instances/${name}/qr`);
-        if (res.success && (res.data?.base64 || res.data?.qrcode?.base64)) {
-            const qrDisplay = document.getElementById('wiz-qr-display');
-            qrDisplay.style.display = 'flex';
-            qrDisplay.innerHTML = `<img src="${res.data?.base64 || res.data?.qrcode?.base64}" alt="QR">`;
+let qrPollInterval = null;
+
+function startQRPolling(name) {
+    stopQRPolling();
+
+    // Poll every 2 seconds for up to 30 seconds
+    let attempts = 0;
+    const maxAttempts = 15;
+
+    qrPollInterval = setInterval(async () => {
+        attempts++;
+
+        try {
+            const res = await fetchAPI(`/instances/${name}/qr`);
+            if (res.success && (res.data?.base64 || res.data?.qrcode?.base64)) {
+                const qrDisplay = document.getElementById('wiz-qr-display');
+                qrDisplay.style.display = 'flex';
+                qrDisplay.innerHTML = `<img src="${res.data?.base64 || res.data?.qrcode?.base64}" alt="QR">`;
+                stopQRPolling();
+            }
+        } catch (e) {
+            console.error('QR fetch error:', e);
         }
-    } catch (e) { config.error(e); }
+
+        if (attempts >= maxAttempts) {
+            stopQRPolling();
+            console.warn('QR polling timeout');
+        }
+    }, 2000);
+}
+
+function stopQRPolling() {
+    if (qrPollInterval) clearInterval(qrPollInterval);
+    qrPollInterval = null;
 }
 
 function startConnectionPolling(name) {
@@ -233,6 +259,7 @@ function startConnectionPolling(name) {
                 const state = res.data.instance?.state || res.data.instance?.status;
                 if (state === 'open') {
                     stopPolling();
+                    stopQRPolling();
                     showWizardStep(3); // Success!
                 }
             }
