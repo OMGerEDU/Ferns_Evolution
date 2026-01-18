@@ -33,38 +33,46 @@ router.post('/', async (req, res, next) => {
             qrcode: result.qrcode
         });
 
-        // FIX: If Evolution returns empty QR/Pairing code, fetch it explicitly
-        // This handles cases where "count: 0" is returned immediately
+        // FIX: Evolution v2 sends QR codes via QRCODE_UPDATED webhook, not in the create response
+        // We need to poll the webhook store for the QR code
         let finalResult = result;
 
         const hasQr = result.qrcode && (result.qrcode.base64 || result.qrcode.code);
         const hasPairing = !!result.pairingCode;
 
         if (!hasQr && !hasPairing) {
-            logger.info('Creation returned no QR/Pairing code. Triggering explicit connect...', { instanceName });
-            try {
-                // Wait 7 seconds - optimal time for Baileys to initialize
-                await new Promise(resolve => setTimeout(resolve, 10000));
+            logger.info('Waiting for QR/Pairing code via webhook...', { instanceName });
 
-                const connectData = await evolution.connect(instanceName);
+            // Import the webhook store
+            const { qrCodeStore } = require('./webhooks');
 
-                logger.info('Explicit connect data received', {
-                    dataKeys: Object.keys(connectData || {}),
-                    pairingCode: connectData?.pairingCode,
-                    qrCount: connectData?.count
-                });
+            // Poll for up to 15 seconds
+            const maxAttempts = 30; // 30 * 500ms = 15 seconds
+            let attempts = 0;
 
-                // Merge the new data carefully
-                // The connect endpoint returns { pairingCode: '...', code: '...', base64: '...' }
-                finalResult = {
-                    ...result,
-                    ...connectData,
-                    // Ensure qrcode object is populated if base64 is present at top level
-                    qrcode: connectData.base64 ? { base64: connectData.base64 } : result.qrcode
-                };
+            while (attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 500));
 
-            } catch (err) {
-                logger.warn('Failed to fetch explicit connection state', { error: err.message });
+                const qrData = qrCodeStore.get(instanceName);
+                if (qrData && (qrData.qrcode || qrData.pairingCode)) {
+                    logger.info('QR/Pairing code received from webhook!', {
+                        hasQr: !!qrData.qrcode,
+                        hasPairing: !!qrData.pairingCode
+                    });
+
+                    finalResult = {
+                        ...result,
+                        qrcode: qrData.qrcode ? { base64: qrData.qrcode } : result.qrcode,
+                        pairingCode: qrData.pairingCode,
+                        code: qrData.code
+                    };
+                    break;
+                }
+                attempts++;
+            }
+
+            if (attempts >= maxAttempts) {
+                logger.warn('Timeout waiting for QR code from webhook', { instanceName });
             }
         }
 
