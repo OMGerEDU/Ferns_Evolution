@@ -64,7 +64,8 @@ EvolutionBackend/
 │   ├── routes/
 │   │   ├── health.js         # Health check endpoints
 │   │   ├── instances.js      # Instance management API
-│   │   └── messages.js       # Message sending API
+│   │   ├── messages.js       # Message sending API
+│   │   └── chats.js          # Chat operations API
 │   ├── services/
 │   │   ├── evolution.js      # Evolution API client
 │   │   └── healthCheck.js    # Health monitoring service
@@ -107,6 +108,15 @@ EvolutionBackend/
 |----------|--------|-------------|
 | `/api/messages/text` | POST | Send text message |
 | `/api/messages/media` | POST | Send media message |
+| `/api/messages/sticker` | POST | Send sticker |
+| `/api/messages/audio` | POST | Send audio/voice note (PTT) |
+
+### Chat Operations (Auth Required)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/chats/update-message` | PUT | Edit sent message |
+| `/api/chats/presence` | POST | Set presence (typing...) |
+| `/api/chats/download-media` | POST | Get media base64 |
 
 ## Authentication
 

@@ -1,122 +1,139 @@
 ---
-description: Evolution API Master Agent - Expert knowledge and workflows for Evolution API v2
+description: Evolution API Master Agent - Expert knowledge and workflows for Evolution API v2 Integration
 ---
 
 # Evolution API Master Agent
 
-This workflow provides expert guidance on using the Evolution API, including instance management, messaging, and troubleshooting.
+This workflow documents the **Evolution API v2** integration within the **EvolutionBackend** project. It serves as the single source of truth for the Backend Service implementation and the Exposed API endpoints.
 
-## 🚀 Key Workflows
+## 🏗️ Architecture
 
-### 1. Connection & Pairing
+The backend acts as a **Proxy** and **Orchestrator** for the Evolution API.
+- **Frontend** calls `EvolutionBackend` endpoints (`/api/...`).
+- **Backend Service** (`src/services/evolution.js`) normalizes calls to the Evolution API container.
+- **Webhooks** are received at `/api/webhooks/evolution` and stored/processed (e.g., QR codes are cached in memory).
 
-**Standard QR Code:**
-```bash
-# Create Instance
-POST /instance/create
-{
-  "instanceName": "my-instance",
-  "qrcode": true
-}
+> [!IMPORTANT]
+> Do NOT call Evolution API directly from the Frontend. Always use the Backend API to ensure API Key protection and data normalization.
 
-# Get QR
-GET /instance/connect/my-instance
-```
+---
 
-**Pairing Code (Phone Number):**
-If use wants to connect via Pairing Code instead of QR:
-```bash
-# Create Instance (qrcode: true is still fine, but we will use the connect endpoint with specific body)
-POST /instance/create
-{
-  "instanceName": "my-instance",
-  "qrcode": true,
-  "integration": "WHATSAPP-BAILEYS"
-}
+## 🛠️ Internal Service (`src/services/evolution.js`)
 
-# Get Pairing Code
-GET /instance/connect/my-instance?number=5511999999999
-# OR
-GET /instance/connect/my-instance
-# (Wait for API confirmation on exact payload for pairing code)
-```
-*> Note: Detailed pairing code implementation is being verified against `codebase.md`.*
+The `evolution.js` service handles all direct HTTP communication including retries and authentication.
 
-### 2. Messaging
+### Key Methods
 
-**Send Text:**
-```bash
-POST /message/sendText/my-instance
-{
-  "number": "5511999999999",
-  "text": "Hello World"
-}
-```
+| Method | Evolution Endpoint | Note |
+| :--- | :--- | :--- |
+| `createInstance(name, options)` | `POST /instance/create` | Only creates the instance. Does NOT generate QR automatically in v2. |
+| `connect(name)` | `GET /instance/connect/:name` | **Required** after creation to trigger QR generation. |
+| `fetchChats(name)` | `POST /chat/findChats/:name` | Use `findChats` instead of `fetchAllChats` for stability. |
+| `fetchGroups(name)` | `POST /chat/findChats/:name` | Filters chats for `@g.us` JIDs. |
+| `sendText(name, number, text)` | `POST /message/sendText/:name` | |
+| `sendMedia(name, number, url)` | `POST /message/sendMedia/:name` | Supports images, video, documents. |
+| `updateMessage(name, key, txt)` | `PUT /chat/updateMessage/:name` | Edit sent text messages. |
+| `sendSticker(name, number, url)` | `POST /message/sendSticker/:name` | Send sticker from URL. |
+| `sendPresence(name, number, status)` | `POST /chat/sendPresence/:name` | Status: composing, recording, etc. |
+| `getBase64(name, messageObj)` | `POST /chat/getBase64FromMediaMessage/:name` | Returns base64 of media message. |
 
-**Send Media:**
-```bash
-POST /message/sendMedia/my-instance
-{
-  "number": "5511999999999",
-  "media": "https://example.com/image.png",
-  "mediatype": "image",
-  "caption": "Check this out!"
-}
-```
+---
 
-### 3. Groups
+## 🚀 Exposed API Routes (`src/routes/`)
 
-**Create Group:**
-```bash
-POST /group/create/my-instance
-{
-  "subject": "My Group",
-  "participants": ["5511999999999"],
-  "description": "Group Description"
-}
-```
+These are the endpoints available to the Admin Panel / Frontend.
 
-## 🛠️ Troubleshooting
+### 1. Instance Management (`/api/instances`)
 
-- **404 Not Found**: Check if instance exists and is running.
-- **400 Bad Request**: Check payload format. Ensure numbers include country code.
-- **Connection Issues**: Restart instance `PUT /instance/restart/:instance`.
+**Create Instance (Smart Flow)**
+- **Endpoint**: `POST /api/instances`
+- **Logic**: Calls `createInstance` -> Checks for QR -> If missing, calls `connect` -> Polls Webhook Store for QR.
+- **Body**:
+  ```json
+  {
+    "instanceName": "my-instance",
+    "qrcode": true,
+    "integration": "WHATSAPP-BAILEYS"
+  }
+  ```
 
-## 📚 Reference
+**Get QR Code**
+- **Endpoint**: `GET /api/instances/:name/qr`
+- **Logic**: Forces a generation of the QR code (calls `connect`).
 
-- **Official Docs**: `d:/SKUL/Sasha/EvolutionBackend/.agent/workflows/codebase.md`
+**Connection State**
+- **Endpoint**: `GET /api/instances/:name` (Returns specific state) or `GET /api/instances` (List all).
 
-## 🌍 Real World Examples (Production)
+### 2. Messaging (`/api/messages`)
 
-**Base URL**: `https://evolution.omger.cloud`
-**Auth Header**: `apikey: 54yWPufPt9y2Wp9QUap` (from your .env)
+**Send Text**
+- **Endpoint**: `POST /api/messages/text`
+- **Body**: `{ "instanceName": "name", "number": "12345...", "text": "Hello" }`
 
-### Create Instance (Pairing Code)
-```bash
-curl -X POST https://evolution.omger.cloud/api/instances \
-  -H "apikey: 54yWPufPt9y2Wp9QUap" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "instanceName": "my-phone",
-    "number": "5511999999999", 
-    "qrcode": true
-  }'
-```
+**Send Media**
+- **Endpoint**: `POST /api/messages/media`
+- **Body**: `{ "instanceName": "name", "number": "...", "media": "http://...", "mediatype": "image", "caption": "..." }`
 
-### Check Connection State
-```bash
-curl -X GET https://evolution.omger.cloud/api/instances/my-phone \
-  -H "apikey: 54yWPufPt9y2Wp9QUap"
-```
+**Supported Types**: `text`, `media`, `audio`, `location`, `contact`, `reaction`, `poll`.
 
-### Send Text Message
-```bash
-curl -X POST https://evolution.omger.cloud/api/messages/send \
-  -H "apikey: 54yWPufPt9y2Wp9QUap" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "instanceName": "my-phone",
-    "number": "5511888888888",
-    "text": "Hello from Evolution!"
-  }'
-```
+**Send Sticker**
+- **Endpoint**: `POST /api/messages/sticker`
+- **Body**: `{ "instanceName": "name", "number": "...", "sticker": "http://..." }`
+
+**Send Voice Note (PTT)**
+- **Endpoint**: `POST /api/messages/audio`
+- **Body**: `{ "instanceName": "name", "number": "...", "audioUrl": "http://...", "ptt": true }`
+
+### 3. Chats & Groups (`/api/chats`)
+
+**Fetch Chats**
+- **Endpoint**: `GET /api/chats?instanceName=...`
+- **Logic**: Proxies `findChats`.
+
+**Message Actions**
+- **Mark as Read**: `PUT /api/chats/mark-read`
+- **Delete Message**: `DELETE /api/chats/delete-message` (Delete for everyone)
+- **Find Messages**: `POST /api/chats/find-messages` (Search history)
+- **Edit Message**: `PUT /api/chats/update-message` (`{ "messageKey": "...", "newMessage": "..." }`)
+- **Set Presence**: `POST /api/chats/presence` (`{ "presence": "composing" }`)
+- **Download Media**: `POST /api/chats/download-media` (`{ "message": {...} }`)
+
+---
+
+## 📡 Webhooks
+
+**Endpoint**: `POST /api/webhooks/evolution/:event`
+
+- **Core Logic**:
+  - Events are logged.
+  - `qrcode-updated` events are **Store in Memory** (`qrCodeStore`).
+  - This allows the `create` endpoint to "poll" internally and return the QR immediately to the frontend.
+
+---
+
+## ⚠️ Known Issues & Troubleshooting
+
+### 1. QR Code Generation
+**Issue**: `POST /instance/create` returns `qrcode: null` even with `qrcode: true`.
+**Fix**: You must call `GET /instance/connect/{name}` immediately after creation. The Backend `POST /api/instances` handles this automatically.
+
+### 2. Fetching Groups
+**Issue**: There is no dedicated `fetchAllGroups` that works reliably in some v2 versions.
+**Fix**: We use `fetchChats` and filter for `id.includes('@g.us')`.
+
+### 3. Error Handling
+- Evolution API errors often come in nested objects (`error.response.data.response.message`).
+- The backend wraps these in a standardized JSON error:
+  ```json
+  {
+    "success": false,
+    "error": "Detailed error message",
+    "code": "EVOLUTION_ERROR"
+  }
+  ```
+
+### 4. 404 Errors
+- If `fetchChats` or `sendText` returns 404:
+  - Check if the instance exists (`GET /api/instances`).
+  - Check if the instance is `open` (connected).
+  - Verify the instance Name in the URL matches exactly (case-sensitive).

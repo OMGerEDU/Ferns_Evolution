@@ -331,6 +331,18 @@ async function fetchAPI(endpoint, options = {}) {
         ...options.headers
     };
     const res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
+
+    // Check content type before parsing
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text();
+        return {
+            success: false,
+            error: res.ok ? 'Server returned non-JSON response' : `HTTP ${res.status}: ${res.statusText}`,
+            details: text.substring(0, 200)
+        };
+    }
+
     return res.json();
 }
 

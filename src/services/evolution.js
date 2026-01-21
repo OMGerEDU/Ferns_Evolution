@@ -182,6 +182,117 @@ async function sendMedia(instanceName, number, mediaUrl, options = {}) {
 }
 
 /**
+ * Send audio message
+ */
+async function sendAudio(instanceName, number, audioUrl, options = {}) {
+    const payload = {
+        number,
+        audioMessage: {
+            audio: audioUrl,
+            ppt: options.ptt || false // 'ppt' is the key in Evolution v2 for PTT (Push-To-Talk)
+        },
+        ...options,
+    };
+
+    const response = await retryWithBackoff(() =>
+        client.post(`/message/sendWhatsAppAudio/${instanceName}`, payload)
+    );
+
+    return response.data;
+}
+
+/**
+ * Send location message
+ */
+async function sendLocation(instanceName, number, latitude, longitude, options = {}) {
+    const payload = {
+        number,
+        latitude,
+        longitude,
+        name: options.name || '',
+        address: options.address || '',
+    };
+
+    const response = await retryWithBackoff(() =>
+        client.post(`/message/sendLocation/${instanceName}`, payload)
+    );
+
+    return response.data;
+}
+
+/**
+ * Send contact message
+ */
+async function sendContact(instanceName, number, contact) {
+    const payload = {
+        number,
+        contact: Array.isArray(contact) ? contact : [contact],
+    };
+
+    const response = await retryWithBackoff(() =>
+        client.post(`/message/sendContact/${instanceName}`, payload)
+    );
+
+    return response.data;
+}
+
+/**
+ * Send reaction to message
+ */
+async function sendReaction(instanceName, messageKey, reaction) {
+    const payload = {
+        reactionMessage: {
+            key: messageKey,
+            reaction: reaction,
+        },
+    };
+
+    const response = await retryWithBackoff(() =>
+        client.post(`/message/sendReaction/${instanceName}`, payload)
+    );
+
+    return response.data;
+}
+
+/**
+ * Send poll message
+ */
+async function sendPoll(instanceName, number, name, options) {
+    const payload = {
+        number,
+        pollMessage: {
+            name,
+            selectableCount: options.selectableCount || 1,
+            values: options.values || [],
+        },
+    };
+
+    const response = await retryWithBackoff(() =>
+        client.post(`/message/sendPoll/${instanceName}`, payload)
+    );
+
+    return response.data;
+}
+
+/**
+ * Send sticker message
+ */
+async function sendSticker(instanceName, number, stickerUrl, options = {}) {
+    const payload = {
+        number,
+        sticker: stickerUrl,
+        ...options,
+    };
+
+    const response = await retryWithBackoff(() =>
+        client.post(`/message/sendSticker/${instanceName}`, payload)
+    );
+
+    return response.data;
+}
+
+
+/**
  * Calculate WhatsApp ID (remoteJid)
  */
 function getRemoteJid(number) {
@@ -194,18 +305,26 @@ function getRemoteJid(number) {
 // --- PROFILE ---
 
 /**
- * Fetch Profile Info
+ * Fetch Profile Info (Status/About)
  */
 async function fetchProfile(instanceName, number) {
     const response = await retryWithBackoff(() =>
         client.get(`/chat/findStatus/${instanceName}`, {
-            data: { number: getRemoteJid(number) } // Evolution v2 uses POST-like body in GET or query param?
-            // Actually v2 usually uses POST for this or a specific endpoint. 
-            // Let's use the robust /chat/findStatus or /chat/fetchProfilePicture
+            params: { number: getRemoteJid(number) }
         })
     );
-    // Note: Evolution v2 API might strictly differentiate between fetching status and picture.
-    // We will implement what's common.
+    return response.data;
+}
+
+/**
+ * Fetch Profile Picture URL
+ */
+async function fetchProfilePictureUrl(instanceName, number) {
+    const response = await retryWithBackoff(() =>
+        client.post(`/chat/fetchProfilePictureUrl/${instanceName}`, {
+            number: getRemoteJid(number)
+        })
+    );
     return response.data;
 }
 
@@ -273,10 +392,19 @@ async function createGroup(instanceName, subject, participants, description) {
  * Fetch All Groups
  */
 async function fetchGroups(instanceName) {
-    const response = await retryWithBackoff(() =>
-        client.get(`/group/fetchAllGroups/${instanceName}?getParticipants=true`)
-    );
-    return response.data;
+    try {
+        // Fallback: fetchAllGroups hangs, so we use findChats and filter for groups
+        const chats = await fetchChats(instanceName);
+        return chats.filter(chat => chat.id.includes('@g.us') || (chat.remoteJid && chat.remoteJid.includes('@g.us')))
+            .map(chat => ({
+                ...chat,
+                subject: chat.name || chat.subject || chat.pushName || 'Unknown Group', // Map name to subject
+                participants: [] // Participants not available in findChats summary
+            }));
+    } catch (error) {
+        logger.error(`Error fetching groups via findChats strategy: ${error.message}`);
+        throw error;
+    }
 }
 
 /**
@@ -312,7 +440,7 @@ async function updateGroupParticipants(instanceName, groupJid, action, participa
  */
 async function fetchChats(instanceName) {
     const response = await retryWithBackoff(() =>
-        client.get(`/chat/findChats/${instanceName}`)
+        client.post(`/chat/findChats/${instanceName}`)
     );
     return response.data;
 }
@@ -340,6 +468,148 @@ async function deleteChat(instanceName, number) {
     );
     return response.data;
 }
+
+/**
+ * Mark message as read
+ */
+async function markAsRead(instanceName, messageKey) {
+    const payload = {
+        readMessages: [messageKey],
+    };
+    const response = await retryWithBackoff(() =>
+        client.put(`/chat/markMessageAsRead/${instanceName}`, payload)
+    );
+    return response.data;
+}
+
+/**
+ * Delete message for everyone
+ */
+async function deleteMessage(instanceName, messageKey) {
+    const payload = {
+        key: messageKey,
+    };
+    const response = await retryWithBackoff(() =>
+        client.delete(`/chat/deleteMessageForEveryone/${instanceName}`, { data: payload })
+    );
+    return response.data;
+}
+
+/**
+ * Find messages
+ */
+async function findMessages(instanceName, options = {}) {
+    const response = await retryWithBackoff(() =>
+        client.post(`/chat/findMessages/${instanceName}`, options)
+    );
+    return response.data;
+}
+
+/**
+ * Update message (Edit)
+ */
+async function updateMessage(instanceName, messageKey, newMessage) {
+    const payload = {
+        key: messageKey,
+        newMessage: {
+            text: newMessage
+        }
+    };
+    // Evolution v2 endpoint for editing
+    const response = await retryWithBackoff(() =>
+        client.put(`/chat/updateMessage/${instanceName}`, payload)
+    );
+    return response.data;
+}
+
+/**
+ * Send Presence (Typing/Recording)
+ */
+async function sendPresence(instanceName, number, presence) {
+    const payload = {
+        number: getRemoteJid(number),
+        presence: presence, // 'composing', 'recording', 'available', 'unavailable'
+        delay: 1200
+    };
+    const response = await retryWithBackoff(() =>
+        client.post(`/chat/sendPresence/${instanceName}`, payload)
+    );
+    return response.data;
+}
+
+/**
+ * Get Base64 from Media Message
+ */
+async function getBase64(instanceName, message) {
+    let messageToUse = message;
+
+    // Check if it's our DB object - usually has green_id as the WA ID
+    // We prioritize green_id if available, otherwise fallback to id (if it happens to be the WA ID)
+    const messageId = message.green_id || message.id;
+    const isInternalObject = !message.key && (message.green_id || message.chat_id);
+
+    if (isInternalObject) {
+        console.log(`[Evolution] Detected internal message object. Attempting resolve. ID: ${messageId}`);
+        try {
+            // Build Where clause
+            // Note: Evolution findMessages often requires remoteJid for efficiency or uniqueness,
+            // but we'll try with just the ID first if we don't have a JID-like chat_id.
+            const whereClause = {
+                key: {
+                    id: messageId
+                }
+            };
+
+            // If chat_id looks like a JID (contains @), use it. 
+            // The user provided a UUID for chat_id, so we ignore it if it doesn't look like a JID.
+            if (message.chat_id && message.chat_id.includes('@')) {
+                whereClause.key.remoteJid = message.chat_id;
+            }
+
+            const findPayload = {
+                where: whereClause
+            };
+
+            console.log(`[Evolution] Looking up raw message with payload:`, JSON.stringify(findPayload));
+
+            const findRes = await retryWithBackoff(() =>
+                client.post(`/chat/findMessages/${instanceName}`, findPayload)
+            );
+
+            const messages = Array.isArray(findRes.data) ? findRes.data : (findRes.data?.messages || []);
+
+            if (messages.length > 0) {
+                messageToUse = messages[0];
+                const type = Object.keys(messageToUse.message || {})[0];
+                console.log(`[Evolution] Found raw message. Type: ${type}, Key: ${JSON.stringify(messageToUse.key)}`);
+            } else {
+                console.warn(`[Evolution] Raw message not found for ID ${messageId}. Attempting with original object.`);
+            }
+        } catch (error) {
+            console.error(`[Evolution] Error fetching raw message: ${error.message}`);
+            if (error.response) {
+                console.error(`[Evolution] Upstream Error Data:`, JSON.stringify(error.response.data));
+            }
+        }
+    }
+
+    const payload = {
+        message: messageToUse,
+        convertToMp4: false
+    };
+
+    try {
+        const response = await retryWithBackoff(() =>
+            client.post(`/chat/getBase64FromMediaMessage/${instanceName}`, payload)
+        );
+        return response.data;
+    } catch (error) {
+        // Enhance error for user
+        console.error(`[Evolution] getBase64 failed. Payload embedded message:`, JSON.stringify(payload.message).substring(0, 200));
+        throw error;
+    }
+}
+
 
 
 /**
@@ -371,10 +641,15 @@ module.exports = {
     restart,
     sendText,
     sendMedia,
+    sendAudio,
+    sendLocation,
+    sendContact,
+    sendReaction,
+    sendPoll,
     healthCheck,
     // Profile
     fetchProfile,
-    fetchProfilePicture,
+    fetchProfilePictureUrl,
     updateProfileName,
     updateProfileStatus,
     updateProfilePicture,
@@ -386,5 +661,12 @@ module.exports = {
     // Chats
     fetchChats,
     archiveChat,
-    deleteChat
+    deleteChat,
+    markAsRead,
+    deleteMessage,
+    findMessages,
+    updateMessage,
+    sendPresence,
+    getBase64,
+    sendSticker
 };

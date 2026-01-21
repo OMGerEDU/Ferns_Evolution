@@ -42,9 +42,15 @@ app.post('/admin/auth', (req, res) => {
     return res.status(401).json({ success: false, error: 'Invalid credentials' });
 });
 
+// Serve API documentation (no auth required)
+app.use('/docs', express.static('public/docs'));
+
 // API routes (auth required)
 app.use('/api/instances', authMiddleware, instanceRoutes);
 app.use('/api/messages', authMiddleware, messageRoutes);
+app.use('/api/chats', authMiddleware, require('./routes/chats'));
+app.use('/api/groups', authMiddleware, require('./routes/groups'));
+app.use('/api/profile', authMiddleware, require('./routes/profile'));
 
 // Webhook routes (no auth token required, verify signature in future)
 app.use('/api/webhooks', webhookRoutes);

@@ -51,13 +51,45 @@ router.post('/text', async (req, res, next) => {
     } catch (error) {
         if (error.response) {
             const errorData = error.response.data;
-            const evolutionMessage = errorData?.response?.message || errorData?.message || error.message;
-            const finalMessage = Array.isArray(evolutionMessage) ? evolutionMessage.join(', ') : evolutionMessage;
+            let finalMessage = 'Unknown Evolution API error';
+
+            // Try to find the message in various places
+            if (errorData) {
+                if (typeof errorData === 'string') {
+                    finalMessage = errorData;
+                } else if (errorData.response?.message) {
+                    finalMessage = errorData.response.message;
+                } else if (errorData.message) {
+                    finalMessage = errorData.message;
+                } else if (errorData.error) {
+                    finalMessage = errorData.error;
+                } else {
+                    // Fallback: stringify the whole data if it's an object we don't recognize
+                    try {
+                        const str = JSON.stringify(errorData);
+                        finalMessage = str !== '{}' ? str : error.message;
+                    } catch (e) {
+                        finalMessage = error.message;
+                    }
+                }
+            } else {
+                finalMessage = error.message;
+            }
+
+            // If message is an array (some frameworks do this), join it
+            if (Array.isArray(finalMessage)) {
+                finalMessage = finalMessage.map(m => typeof m === 'object' ? JSON.stringify(m) : m).join(', ');
+            }
+            // If it's still an object (e.g. message was an object), stringify it
+            if (typeof finalMessage === 'object') {
+                finalMessage = JSON.stringify(finalMessage);
+            }
 
             return res.status(error.response.status).json({
                 success: false,
                 error: finalMessage,
                 code: 'EVOLUTION_ERROR',
+                details: errorData // Include raw data for debugging
             });
         }
         next(error);
@@ -124,6 +156,110 @@ router.post('/media', async (req, res, next) => {
                 code: 'EVOLUTION_ERROR',
             });
         }
+        next(error);
+    }
+});
+
+/**
+ * POST /api/messages/audio
+ * Send an audio message
+ */
+router.post('/audio', async (req, res, next) => {
+    try {
+        const { instanceName, number, audioUrl } = req.body;
+        if (!instanceName || !number || !audioUrl) {
+            return res.status(400).json({ success: false, error: 'Missing required fields' });
+        }
+        const result = await evolution.sendAudio(instanceName, number, audioUrl);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * POST /api/messages/location
+ * Send a location message
+ */
+router.post('/location', async (req, res, next) => {
+    try {
+        const { instanceName, number, latitude, longitude, name, address } = req.body;
+        if (!instanceName || !number || !latitude || !longitude) {
+            return res.status(400).json({ success: false, error: 'Missing required fields' });
+        }
+        const result = await evolution.sendLocation(instanceName, number, latitude, longitude, { name, address });
+        res.json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * POST /api/messages/contact
+ * Send a contact message
+ */
+router.post('/contact', async (req, res, next) => {
+    try {
+        const { instanceName, number, contact } = req.body;
+        if (!instanceName || !number || !contact) {
+            return res.status(400).json({ success: false, error: 'Missing required fields' });
+        }
+        const result = await evolution.sendContact(instanceName, number, contact);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * POST /api/messages/reaction
+ * Send a reaction to a message
+ */
+router.post('/reaction', async (req, res, next) => {
+    try {
+        const { instanceName, messageKey, reaction } = req.body;
+        if (!instanceName || !messageKey || !reaction) {
+            return res.status(400).json({ success: false, error: 'Missing required fields' });
+        }
+        const result = await evolution.sendReaction(instanceName, messageKey, reaction);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * POST /api/messages/poll
+ * Send a poll message
+ */
+router.post('/poll', async (req, res, next) => {
+    try {
+        const { instanceName, number, name, selectableCount, values } = req.body;
+        if (!instanceName || !number || !name || !values) {
+            return res.status(400).json({ success: false, error: 'Missing required fields' });
+        }
+        const result = await evolution.sendPoll(instanceName, number, name, { selectableCount, values });
+        res.json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+});
+
+
+
+/**
+ * POST /api/messages/sticker
+ * Send a sticker message
+ */
+router.post('/sticker', async (req, res, next) => {
+    try {
+        const { instanceName, number, sticker } = req.body;
+        if (!instanceName || !number || !sticker) {
+            return res.status(400).json({ success: false, error: 'Missing required fields' });
+        }
+        const result = await evolution.sendSticker(instanceName, number, sticker);
+        res.json({ success: true, data: result });
+    } catch (error) {
         next(error);
     }
 });

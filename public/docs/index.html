@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evolution API Documentation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>Evolution API</h1>
+                <p>Interactive Documentation</p>
+            </div>
+
+            <nav class="nav">
+                <div class="nav-section">
+                    <h3>Instance</h3>
+                    <a href="#get-instances" class="nav-link">List Instances</a>
+                    <a href="#get-instance" class="nav-link">Get Instance</a>
+                    <a href="#create-instance" class="nav-link">Create Instance</a>
+                    <a href="#delete-instance" class="nav-link">Delete Instance</a>
+                    <a href="#logout-instance" class="nav-link">Logout Instance</a>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Messaging</h3>
+                    <a href="#send-text" class="nav-link">Send Text</a>
+                    <a href="#send-media" class="nav-link">Send Media</a>
+                    <a href="#send-sticker" class="nav-link">Send Sticker</a>'
+                    <a href="#send-poll" class="nav-link">Send Poll</a>
+                    <a href="#send-audio" class="nav-link">Send Audio / PTT</a>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Contacts & Groups</h3>
+                    <a href="#fetch-chats" class="nav-link">Fetch Chats</a>
+                    <a href="#fetch-groups" class="nav-link">Fetch Groups</a>
+                    <a href="#update-message" class="nav-link">Update Message</a>
+                    <a href="#send-presence" class="nav-link">Set Presence</a>
+                    <a href="#download-media" class="nav-link">Download Media</a>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Profile</h3>
+                    <a href="#fetch-profile-picture" class="nav-link">Fetch Picture URL</a>
+                    <a href="#update-profile-name" class="nav-link">Update Name</a>
+                    <a href="#update-profile-status" class="nav-link">Update Status</a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <h2>API Documentation</h2>
+                <div class="instance-selector">
+                    <label for="instance-select">Test with Instance:</label>
+                    <select id="instance-select">
+                        <option value="">Select an instance...</option>
+                    </select>
+                </div>
+            </header>
+
+            <div class="content">
+                <!-- Instance Endpoints -->
+                <section id="instances-section">
+                    <h2>Instance Management</h2>
+
+                    <!-- GET /api/instances -->
+                    <div class="endpoint" id="get-instances">
+                        <div class="endpoint-header">
+                            <span class="method get">GET</span>
+                            <span class="path">/api/instances</span>
+                        </div>
+                        <p class="description">List all WhatsApp instances</p>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('get-instances')">Try it</button>
+                            <div class="response-panel" id="response-get-instances"></div>
+                        </div>
+                    </div>
+
+                    <!-- GET /api/instances/:name -->
+                    <div class="endpoint" id="get-instance">
+                        <div class="endpoint-header">
+                            <span class="method get">GET</span>
+                            <span class="path">/api/instances/:name</span>
+                        </div>
+                        <p class="description">Get instance details and connection state</p>
+
+                        <div class="params">
+                            <h4>Path Parameters</h4>
+                            <div class="param">
+                                <code>name</code> <span class="required">required</span>
+                                <p>Instance name (auto-filled from selector)</p>
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('get-instance')">Try it</button>
+                            <div class="response-panel" id="response-get-instance"></div>
+                        </div>
+                    </div>
+
+                    <!-- DELETE /api/instances/:name -->
+                    <div class="endpoint" id="delete-instance">
+                        <div class="endpoint-header">
+                            <span class="method delete">DELETE</span>
+                            <span class="path">/api/instances/:name</span>
+                        </div>
+                        <p class="description">Delete an instance</p>
+
+                        <div class="params">
+                            <h4>Path Parameters</h4>
+                            <div class="param">
+                                <code>name</code> <span class="required">required</span>
+                                <p>Instance name to delete</p>
+                            </div>
+                        </div>
+
+                        <div class="alert warning">
+                            ⚠️ This action cannot be undone. The instance will be permanently deleted.
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn danger" onclick="tryEndpoint('delete-instance')">Try it</button>
+                            <div class="response-panel" id="response-delete-instance"></div>
+                        </div>
+                    </div>
+
+                    <!-- POST /api/instances/:name/logout -->
+                    <div class="endpoint" id="logout-instance">
+                        <div class="endpoint-header">
+                            <span class="method post">POST</span>
+                            <span class="path">/api/instances/:name/logout</span>
+                        </div>
+                        <p class="description">Logout instance (disconnect without deleting)</p>
+
+                        <div class="params">
+                            <h4>Path Parameters</h4>
+                            <div class="param">
+                                <code>name</code> <span class="required">required</span>
+                                <p>Instance name</p>
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('logout-instance')">Try it</button>
+                            <div class="response-panel" id="response-logout-instance"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Messaging Endpoints -->
+                <section id="messaging-section">
+                    <h2>Messaging</h2>
+
+                    <!-- POST /api/messages/text -->
+                    <div class="endpoint" id="send-text">
+                        <div class="endpoint-header">
+                            <span class="method post">POST</span>
+                            <span class="path">/api/messages/text</span>
+                        </div>
+                        <p class="description">Send a text message</p>
+
+                        <div class="params">
+                            <h4>Request Body</h4>
+                            <div class="param">
+                                <code>instanceName</code> <span class="required">required</span>
+                                <p>Instance to send from (auto-filled)</p>
+                            </div>
+                            <div class="param">
+                                <code>number</code> <span class="required">required</span>
+                                <p>Recipient number with country code (e.g., 972541234567)</p>
+                                <input type="text" id="input-send-text-number" placeholder="972541234567"
+                                    class="param-input">
+                            </div>
+                            <div class="param">
+                                <code>text</code> <span class="required">required</span>
+                                <p>Message text</p>
+                                <textarea id="input-send-text-text" placeholder="Hello from Evolution API!"
+                                    class="param-input" rows="3"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('send-text')">Try it</button>
+                            <div class="response-panel" id="response-send-text"></div>
+                        </div>
+                    </div>
+
+                    <!-- POST /api/messages/media -->
+                    <div class="endpoint" id="send-media">
+                        <div class="endpoint-header">
+                            <span class="method post">POST</span>
+                            <span class="path">/api/messages/media</span>
+                        </div>
+                        <p class="description">Send a media message (image, video, document)</p>
+
+                        <div class="params">
+                            <h4>Request Body</h4>
+                            <div class="param">
+                                <code>instanceName</code> <span class="required">required</span>
+                                <p>Instance to send from</p>
+                            </div>
+                            <div class="param">
+                                <code>number</code> <span class="required">required</span>
+                                <p>Recipient number with country code</p>
+                                <input type="text" id="input-send-media-number" placeholder="972541234567"
+                                    class="param-input">
+                            </div>
+                            <div class="param">
+                                <code>media</code> <span class="required">required</span>
+                                <p>Public URL or base64 of the media file</p>
+                                <input type="text" id="input-send-media-url" placeholder="https://example.com/image.jpg"
+                                    class="param-input">
+                            </div>
+                            <div class="param">
+                                <code>caption</code> <span class="optional">optional</span>
+                                <p>Media caption</p>
+                                <input type="text" id="input-send-media-caption" placeholder="Check this out!"
+                                    class="param-input">
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('send-media')">Try it</button>
+                            <div class="response-panel" id="response-send-media"></div>
+                        </div>
+                    </div>
+
+                    <!-- POST /api/messages/sticker -->
+                    <div class="endpoint" id="send-sticker">
+                        <div class="endpoint-header">
+                            <span class="method post">POST</span>
+                            <span class="path">/api/messages/sticker</span>
+                        </div>
+                        <p class="description">Send a sticker message</p>
+                        <div class="params">
+                            <div class="param">
+                                <code>number</code> <span class="required">required</span>
+                                <input type="text" id="input-send-sticker-number" placeholder="97254..."
+                                    class="param-input">
+                            </div>
+                            <div class="param">
+                                <code>sticker</code> <span class="required">required</span>
+                                <p>URL of the sticker image</p>
+                                <input type="text" id="input-send-sticker-url" placeholder="https://..."
+                                    class="param-input">
+                            </div>
+                        </div>
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('send-sticker')">Try it</button>
+                            <div class="response-panel" id="response-send-sticker"></div>
+                        </div>
+                    </div>
+
+                    <!-- POST /api/messages/audio -->
+                    <div class="endpoint" id="send-audio">
+                        <div class="endpoint-header">
+                            <span class="method post">POST</span>
+                            <span class="path">/api/messages/audio</span>
+                        </div>
+                        <p class="description">Send an audio message</p>
+                        <div class="params">
+                            <div class="param">
+                                <code>number</code> <span class="required">required</span>
+                                <input type="text" id="input-send-audio-number" placeholder="97254..."
+                                    class="param-input">
+                            </div>
+                            <div class="param">
+                                <code>audioUrl</code> <span class="required">required</span>
+                                <input type="text" id="input-send-audio-url" placeholder="https://..."
+                                    class="param-input">
+                            </div>
+                            <div class="param">
+                                <code>audioUrl</code> <span class="required">required</span>
+                                <input type="text" id="input-send-audio-url" placeholder="https://..."
+                                    class="param-input">
+                            </div>
+                            <div class="param">
+                                <label style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="checkbox" id="input-send-audio-ptt"> Send as Voice Note (PTT)
+                                </label>
+                            </div>
+                            <div class="try-it-section">
+                                <button class="try-it-btn" onclick="tryEndpoint('send-audio')">Try it</button>
+                                <div class="response-panel" id="response-send-audio"></div>
+                            </div>
+                        </div>
+
+                        <!-- POST /api/messages/poll -->
+                        <div class="endpoint" id="send-poll">
+                            <div class="endpoint-header">
+                                <span class="method post">POST</span>
+                                <span class="path">/api/messages/poll</span>
+                            </div>
+                            <p class="description">Send a poll message</p>
+                            <div class="params">
+                                <div class="param">
+                                    <code>number</code> <span class="required">required</span>
+                                    <input type="text" id="input-send-poll-number" placeholder="97254..."
+                                        class="param-input">
+                                </div>
+                                <div class="param">
+                                    <code>name</code> <span class="required">required</span>
+                                    <p>Poll Question</p>
+                                    <input type="text" id="input-send-poll-name" placeholder="Favorite color?"
+                                        class="param-input">
+                                </div>
+                                <div class="param">
+                                    <code>values</code> <span class="required">required</span>
+                                    <p>Comma separated options</p>
+                                    <input type="text" id="input-send-poll-options" placeholder="Red, Blue, Green"
+                                        class="param-input">
+                                </div>
+                            </div>
+                            <div class="try-it-section">
+                                <button class="try-it-btn" onclick="tryEndpoint('send-poll')">Try it</button>
+                                <div class="response-panel" id="response-send-poll"></div>
+                            </div>
+                        </div>
+                </section>
+
+                <!-- Contacts & Groups -->
+                <section id="contacts-section">
+                    <h2>Contacts & Groups</h2>
+
+                    <!-- GET /api/chats -->
+                    <div class="endpoint" id="fetch-chats">
+                        <div class="endpoint-header">
+                            <span class="method get">GET</span>
+                            <span class="path">/api/chats</span>
+                        </div>
+                        <p class="description">Fetch all chats for an instance</p>
+
+                        <div class="params">
+                            <h4>Query Parameters</h4>
+                            <div class="param">
+                                <code>instanceName</code> <span class="required">required</span>
+                                <p>Instance name (auto-filled)</p>
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('fetch-chats')">Try it</button>
+                            <div class="response-panel" id="response-fetch-chats"></div>
+                        </div>
+                    </div>
+
+                    <!-- GET /api/groups -->
+                    <div class="endpoint" id="fetch-groups">
+                        <div class="endpoint-header">
+                            <span class="method get">GET</span>
+                            <span class="path">/api/groups</span>
+                        </div>
+                        <p class="description">Fetch all groups for an instance</p>
+
+                        <div class="params">
+                            <h4>Query Parameters</h4>
+                            <div class="param">
+                                <code>instanceName</code> <span class="required">required</span>
+                                <p>Instance name (auto-filled)</p>
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('fetch-groups')">Try it</button>
+                            <div class="response-panel" id="response-fetch-groups"></div>
+                        </div>
+                    </div>
+
+                    <!-- PUT /api/chats/update-message -->
+                    <div class="endpoint" id="update-message">
+                        <div class="endpoint-header">
+                            <span class="method put">PUT</span>
+                            <span class="path">/api/chats/update-message</span>
+                        </div>
+                        <p class="description">Edit a sent text message</p>
+                        <div class="params">
+                            <div class="param">
+                                <code>messageKey</code> <span class="required">required</span>
+                                <p>The `key.id` of the message to edit</p>
+                                <input type="text" id="input-update-message-key" placeholder="BAE5..."
+                                    class="param-input">
+                            </div>
+                            <div class="param">
+                                <code>newMessage</code> <span class="required">required</span>
+                                <p>The new text content</p>
+                                <textarea id="input-update-message-text" placeholder="Corrected text..."
+                                    class="param-input"></textarea>
+                            </div>
+                        </div>
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('update-message')">Try it</button>
+                            <div class="response-panel" id="response-update-message"></div>
+                        </div>
+                    </div>
+
+                    <!-- POST /api/chats/presence -->
+                    <div class="endpoint" id="send-presence">
+                        <div class="endpoint-header">
+                            <span class="method post">POST</span>
+                            <span class="path">/api/chats/presence</span>
+                        </div>
+                        <p class="description">Set presence status (typing, recording)</p>
+                        <div class="params">
+                            <div class="param">
+                                <code>number</code> <span class="required">required</span>
+                                <input type="text" id="input-send-presence-number" placeholder="97254..."
+                                    class="param-input">
+                            </div>
+                            <div class="param">
+                                <code>presence</code> <span class="required">required</span>
+                                <select id="input-send-presence-status" class="param-input">
+                                    <option value="composing">composing</option>
+                                    <option value="recording">recording</option>
+                                    <option value="available">available</option>
+                                    <option value="unavailable">unavailable</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('send-presence')">Try it</button>
+                            <div class="response-panel" id="response-send-presence"></div>
+                        </div>
+                    </div>
+
+                    <!-- POST /api/chats/download-media -->
+                    <div class="endpoint" id="download-media">
+                        <div class="endpoint-header">
+                            <span class="method post">POST</span>
+                            <span class="path">/api/chats/download-media</span>
+                        </div>
+                        <p class="description">Get Base64 from media message</p>
+                        <div class="params">
+                            <div class="param">
+                                <code>message</code> <span class="required">required</span>
+                                <p>Full message object JSON (from webhook or findMessages)</p>
+                                <textarea id="input-download-media-json" placeholder='{"key": {...}, "message": {...}}'
+                                    class="param-input" rows="5"></textarea>
+                            </div>
+                        </div>
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('download-media')">Try it</button>
+                            <div class="response-panel" id="response-download-media"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Profile -->
+                <section id="profile-section">
+                    <h2>Profile Management</h2>
+
+                    <!-- POST /api/profile/picture-url -->
+                    <div class="endpoint" id="fetch-profile-picture">
+                        <div class="endpoint-header">
+                            <span class="method post">POST</span>
+                            <span class="path">/api/profile/picture-url</span>
+                        </div>
+                        <p class="description">Fetch profile picture URL for a number</p>
+
+                        <div class="params">
+                            <div class="param">
+                                <code>number</code> <span class="required">required</span>
+                                <p>WhatsApp number</p>
+                                <input type="text" id="input-fetch-picture-number" placeholder="97254..."
+                                    class="param-input">
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('fetch-profile-picture')">Try it</button>
+                            <div class="response-panel" id="response-fetch-profile-picture"></div>
+                        </div>
+                    </div>
+
+                    <!-- POST /api/profile/name -->
+                    <div class="endpoint" id="update-profile-name">
+                        <div class="endpoint-header">
+                            <span class="method post">POST</span>
+                            <span class="path">/api/profile/name</span>
+                        </div>
+                        <p class="description">Update profile display name</p>
+
+                        <div class="params">
+                            <h4>Request Body</h4>
+                            <div class="param">
+                                <code>instanceName</code> <span class="required">required</span>
+                                <p>Instance name</p>
+                            </div>
+                            <div class="param">
+                                <code>name</code> <span class="required">required</span>
+                                <p>New profile name</p>
+                                <input type="text" id="input-update-name" placeholder="My Business" class="param-input">
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('update-profile-name')">Try it</button>
+                            <div class="response-panel" id="response-update-profile-name"></div>
+                        </div>
+                    </div>
+
+                    <!-- POST /api/profile/status -->
+                    <div class="endpoint" id="update-profile-status">
+                        <div class="endpoint-header">
+                            <span class="method post">POST</span>
+                            <span class="path">/api/profile/status</span>
+                        </div>
+                        <p class="description">Update profile status (about)</p>
+
+                        <div class="params">
+                            <h4>Request Body</h4>
+                            <div class="param">
+                                <code>instanceName</code> <span class="required">required</span>
+                                <p>Instance name</p>
+                            </div>
+                            <div class="param">
+                                <code>status</code> <span class="required">required</span>
+                                <p>New status text</p>
+                                <input type="text" id="input-update-status" placeholder="Available 24/7"
+                                    class="param-input">
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('update-profile-status')">Try it</button>
+                            <div class="response-panel" id="response-update-profile-status"></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
