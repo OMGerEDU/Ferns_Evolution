@@ -10,6 +10,8 @@ const instanceRoutes = require('./routes/instances');
 
 const messageRoutes = require('./routes/messages');
 const webhookRoutes = require('./routes/webhooks');
+const webhookRelayRoutes = require('./routes/webhookRelay');
+const db = require('./services/db');
 
 // Import middleware
 const authMiddleware = require('./middleware/auth');
@@ -51,9 +53,14 @@ app.use('/api/messages', authMiddleware, messageRoutes);
 app.use('/api/chats', authMiddleware, require('./routes/chats'));
 app.use('/api/groups', authMiddleware, require('./routes/groups'));
 app.use('/api/profile', authMiddleware, require('./routes/profile'));
+app.use('/api/tenants', authMiddleware, require('./routes/tenants'));
+app.use('/api/automations', authMiddleware, require('./routes/automations'));
 
-// Webhook routes (no auth token required, verify signature in future)
+// Webhook routes (legacy internal)
 app.use('/api/webhooks', webhookRoutes);
+
+// New Universal Webhook Relay
+app.use('/wh', webhookRelayRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);

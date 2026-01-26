@@ -398,6 +398,8 @@
         <nav class="navbar">
             <div class="logo">Evolution <span>Sync</span></div>
             <div>
+                <button class="btn btn-secondary" style="margin-right:1rem;"
+                    onclick="showSection('automations')">Automations</button>
                 <button class="btn btn-secondary" style="margin-right:1rem;" onclick="logout()">Logout</button>
             </div>
         </nav>
@@ -517,6 +519,56 @@
             }
         }
     </style>
-</body>
+    <!-- Automations Section -->
+    <section id="automations-section">
+        <nav class="navbar">
+            <div class="logo">Evolution <span>Automate</span></div>
+            <button class="btn btn-secondary" onclick="showSection('dashboard')">Back to Dashboard</button>
+        </nav>
+
+        <div class="container">
+            <div class="section-header">
+                <h2>Automation Rules</h2>
+                <button class="btn btn-primary" onclick="openRuleModal()">+ New Rule</button>
+            </div>
+
+            <div class="card">
+                <div id="automations-list" style="padding:1rem;">
+                    <div style="text-align:center; color:#9ca3af">Loading rules...</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rule Modal -->
+    <div id="rule-modal" class="modal">
+        <div class="modal-content" style="max-width:500px; text-align:left;">
+            <h3 style="margin-top:0">Create Automation</h3>
+
+            <div class="input-group">
+                <label>Rule Name</label>
+                <input type="text" id="rule-name" placeholder="Auto Reply Hello">
+            </div>
+
+            <div class="input-group">
+                <label>Trigger: Text Contains</label>
+                <input type="text" id="rule-trigger" placeholder="hello">
+            </div>
+
+            <div class="input-group">
+                <label>Action: Reply Text</label>
+                <input type="text" id="rule-response" placeholder="Hi there! How can I help?">
+            </div>
+
+            <!-- Future: HTTP Action fields hidden for MVP -->
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeRuleModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveRule()">Save Rule</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=4.0"></script>
 
 </html>

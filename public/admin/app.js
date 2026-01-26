@@ -4,12 +4,14 @@ let API_KEY = localStorage.getItem('evolution_api_key');
 
 // State
 let connectionPollInterval = null;
+let currentTenant = null;
 
 // UI References
 const sections = {
     login: document.getElementById('login-section'),
     dashboard: document.getElementById('dashboard-section'),
-    wizard: document.getElementById('wizard-section')
+    wizard: document.getElementById('wizard-section'),
+    automations: document.getElementById('automations-section')
 };
 
 const wizardSteps = {
@@ -125,6 +127,114 @@ function updateStats(t, c, d) {
     document.getElementById('stat-connected').textContent = c;
     document.getElementById('stat-disconnected').textContent = d;
 }
+
+// --- AUTOMATIONS LOGIC ---
+async function loadAutomations() {
+    const list = document.getElementById('automations-list');
+    list.innerHTML = '<div style="padding:2rem;text-align:center">Loading...</div>';
+
+    try {
+        // 1. Get Default Tenant (or create if needed for testing)
+        if (!currentTenant) {
+            const tRes = await fetchAPI('/tenants/default');
+            if (tRes.success) {
+                currentTenant = tRes.data;
+            } else {
+                throw new Error('Failed to load tenant: ' + tRes.error);
+            }
+        }
+
+        // 2. Fetch Rules
+        const res = await fetchAPI(`/automations?tenantId=${currentTenant.id}`);
+        if (res.success) {
+            renderRules(res.data);
+        } else {
+            list.innerHTML = `<div style="color:red">${res.error}</div>`;
+        }
+    } catch (e) {
+        list.innerHTML = `<div style="color:red">${e.message}</div>`;
+    }
+}
+
+function renderRules(rules) {
+    const list = document.getElementById('automations-list');
+
+    // Webhook URL Banner
+    const whUrl = `${window.location.origin}/wh/evolution/${currentTenant.id}/${currentTenant.webhook_secret}`;
+    const headerHtml = `
+        <div style="background:rgba(16,185,129,0.1); padding:1rem; border-radius:6px; margin-bottom:1rem; border:1px solid #059669;">
+            <strong>Your Webhook URL:</strong><br>
+            <code style="display:block; margin-top:0.5rem; background:#000; padding:0.5rem; word-break:break-all;">${whUrl}</code>
+        </div>
+    `;
+
+    if (!rules || rules.length === 0) {
+        list.innerHTML = headerHtml + '<div style="padding:2rem;text-align:center;color:#9ca3af">No rules found. Click "New Rule" to create one.</div>';
+        return;
+    }
+
+    list.innerHTML = headerHtml;
+    rules.forEach(rule => {
+        const row = document.createElement('div');
+        row.className = 'instance-row';
+        row.innerHTML = `
+            <div class="instance-info">
+                <div>
+                    <div style="font-weight:600">${rule.name}</div>
+                    <div style="font-size:0.8rem;color:#9ca3af">
+                        Trigger: "${rule.trigger.text_contains}" 
+                        <span style="margin:0 5px">→</span> 
+                        Action: ${rule.actions[0].type === 'send_message' ? 'Send Text' : 'HTTP Request'}
+                    </div>
+                </div>
+            </div>
+            <div>
+                 <button class="btn btn-danger" onclick="deleteRule(${rule.id})">Delete</button>
+            </div>
+        `;
+        list.appendChild(row);
+    });
+}
+
+window.deleteRule = async (id) => {
+    if (!confirm('Delete rule?')) return;
+    await fetchAPI(`/automations/${id}`, { method: 'DELETE' });
+    loadAutomations();
+};
+
+window.openRuleModal = () => document.getElementById('rule-modal').classList.add('active');
+window.closeRuleModal = () => document.getElementById('rule-modal').classList.remove('active');
+
+window.saveRule = async () => {
+    const name = document.getElementById('rule-name').value;
+    const triggerText = document.getElementById('rule-trigger').value;
+    const responseText = document.getElementById('rule-response').value;
+
+    if (!name || !triggerText) {
+        return showNotify('Name and Trigger required', 'error');
+    }
+
+    const payload = {
+        tenantId: currentTenant.id,
+        name,
+        enabled: true,
+        trigger: { provider: 'any', text_contains: triggerText },
+        actions: [{ type: 'send_message', params: { text: responseText } }]
+    };
+
+    const res = await fetchAPI('/automations', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+    });
+
+    if (res.success) {
+        closeRuleModal();
+        loadAutomations();
+        showNotify('Rule saved', 'success');
+    } else {
+        showNotify(res.error, 'error');
+    }
+};
 
 // --- WIZARD LOGIC ---
 let wizardInstanceName = '';
@@ -317,6 +427,9 @@ window.logoutInstance = async (name) => {
 function showSection(id) {
     Object.values(sections).forEach(el => el.classList.remove('active'));
     sections[id].classList.add('active');
+
+    // Load data hook
+    if (id === 'automations') loadAutomations();
 }
 
 function showWizardStep(step) {
