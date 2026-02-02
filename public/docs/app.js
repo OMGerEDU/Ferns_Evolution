@@ -299,6 +299,135 @@ async function tryEndpoint(endpointId) {
                 result = await fetchAPI('/profile/picture', { method: 'POST', body: JSON.stringify({ instanceName, picture: picUrl }) });
                 break;
 
+            // Automations
+            case 'get-automations':
+                const tenantId = document.getElementById('input-get-automations-tenant').value;
+                if (!tenantId) {
+                    alert('Tenant ID required'); responsePanel.classList.remove('active'); return;
+                }
+                result = await fetchAPI(`/automations?tenantId=${tenantId}`);
+                break;
+
+            case 'create-automation':
+                const createTenant = document.getElementById('input-create-automation-tenant').value;
+                const createName = document.getElementById('input-create-automation-name').value;
+                const createTrigger = document.getElementById('input-create-automation-trigger').value;
+                const createActions = document.getElementById('input-create-automation-actions').value;
+
+                if (!createTenant || !createName) {
+                    alert('Missing fields'); responsePanel.classList.remove('active'); return;
+                }
+                try {
+                    result = await fetchAPI('/automations', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            tenantId: createTenant,
+                            name: createName,
+                            trigger: JSON.parse(createTrigger || '{}'),
+                            actions: JSON.parse(createActions || '[]'),
+                            enabled: true
+                        })
+                    });
+                } catch (e) {
+                    alert('Invalid JSON in trigger/actions'); responsePanel.classList.remove('active'); return;
+                }
+                break;
+
+            case 'update-automation':
+                const updateId = document.getElementById('input-update-automation-id').value;
+                const updateName = document.getElementById('input-update-automation-name').value;
+                const updateTrigger = document.getElementById('input-update-automation-trigger').value;
+                const updateActions = document.getElementById('input-update-automation-actions').value;
+
+                if (!updateId) {
+                    alert('ID required'); responsePanel.classList.remove('active'); return;
+                }
+                const updateBody = {};
+                if (updateName) updateBody.name = updateName;
+                try {
+                    if (updateTrigger) updateBody.trigger = JSON.parse(updateTrigger);
+                    if (updateActions) updateBody.actions = JSON.parse(updateActions);
+                } catch (e) {
+                    alert('Invalid JSON'); responsePanel.classList.remove('active'); return;
+                }
+
+                result = await fetchAPI(`/automations/${updateId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(updateBody)
+                });
+                break;
+
+            case 'toggle-automation':
+                const toggleId = document.getElementById('input-toggle-automation-id').value;
+                if (!toggleId) {
+                    alert('ID required'); responsePanel.classList.remove('active'); return;
+                }
+                result = await fetchAPI(`/automations/${toggleId}/toggle`, { method: 'PATCH' });
+                break;
+
+            case 'delete-automation':
+                const deleteId = document.getElementById('input-delete-automation-id').value;
+                if (!deleteId) {
+                    alert('ID required'); responsePanel.classList.remove('active'); return;
+                }
+                if (!confirm('Delete automation?')) {
+                    responsePanel.classList.remove('active'); return;
+                }
+                result = await fetchAPI(`/automations/${deleteId}`, { method: 'DELETE' });
+                break;
+
+            // Webhook Configuration Endpoints
+            case 'get-webhook-config':
+                const getWebhookInstance = document.getElementById('input-get-webhook-config-instance').value;
+                if (!getWebhookInstance) {
+                    alert('Instance name required'); responsePanel.classList.remove('active'); return;
+                }
+                result = await fetchAPI(`/webhook-config/${getWebhookInstance}`);
+                break;
+
+            case 'save-webhook-config':
+                const saveWebhookInstance = document.getElementById('input-save-webhook-config-instance').value;
+                const webhookUrl = document.getElementById('input-save-webhook-config-url').value;
+                const webhookEnabled = document.getElementById('input-save-webhook-config-enabled').value === 'true';
+                const webhookEventsStr = document.getElementById('input-save-webhook-config-events').value;
+                const webhookSourcesStr = document.getElementById('input-save-webhook-config-sources').value;
+                const webhookAllowMedia = document.getElementById('input-save-webhook-config-allow_media').value === 'true';
+
+                if (!saveWebhookInstance || !webhookUrl) {
+                    alert('Instance name and URL required'); responsePanel.classList.remove('active'); return;
+                }
+
+                let webhookEvents, webhookSources;
+                try {
+                    webhookEvents = webhookEventsStr ? JSON.parse(webhookEventsStr) : ['messages.upsert'];
+                    webhookSources = webhookSourcesStr ? JSON.parse(webhookSourcesStr) : ['groups', 'private'];
+                } catch (e) {
+                    alert('Invalid JSON in events or sources'); responsePanel.classList.remove('active'); return;
+                }
+
+                result = await fetchAPI(`/webhook-config/${saveWebhookInstance}`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        url: webhookUrl,
+                        enabled: webhookEnabled,
+                        events: webhookEvents,
+                        sources: webhookSources,
+                        allow_media: webhookAllowMedia
+                    })
+                });
+                break;
+
+            case 'delete-webhook-config':
+                const deleteWebhookInstance = document.getElementById('input-delete-webhook-config-instance').value;
+                if (!deleteWebhookInstance) {
+                    alert('Instance name required'); responsePanel.classList.remove('active'); return;
+                }
+                if (!confirm('Delete webhook configuration?')) {
+                    responsePanel.classList.remove('active'); return;
+                }
+                result = await fetchAPI(`/webhook-config/${deleteWebhookInstance}`, { method: 'DELETE' });
+                break;
+
             default:
                 throw new Error('Unknown endpoint');
         }

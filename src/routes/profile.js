@@ -13,8 +13,15 @@ router.post('/fetch', async (req, res, next) => {
         if (!instanceName || !number) {
             return res.status(400).json({ success: false, error: 'Missing required fields' });
         }
-        const result = await evolution.fetchProfile(instanceName, number);
-        res.json({ success: true, data: result });
+
+        try {
+            const result = await evolution.fetchProfile(instanceName, number);
+            res.json({ success: true, data: result });
+        } catch (error) {
+            logger.warn(`Failed to fetch profile for ${number}: ${error.message}`);
+            // Return success with null data to prevent UI errors
+            res.json({ success: true, data: null });
+        }
     } catch (error) {
         next(error);
     }
@@ -81,8 +88,15 @@ router.post('/picture-url', async (req, res, next) => {
         if (!instanceName || !number) {
             return res.status(400).json({ success: false, error: 'Missing required fields' });
         }
-        const result = await evolution.fetchProfilePictureUrl(instanceName, number);
-        res.json({ success: true, data: result });
+
+        try {
+            const result = await evolution.fetchProfilePictureUrl(instanceName, number);
+            res.json({ success: true, data: result });
+        } catch (error) {
+            logger.warn(`Failed to fetch profile picture URL for ${number}: ${error.message}`);
+            // Return success with null data to prevent UI errors
+            res.json({ success: true, data: null });
+        }
     } catch (error) {
         next(error);
     }

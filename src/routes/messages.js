@@ -166,12 +166,49 @@ router.post('/media', async (req, res, next) => {
  */
 router.post('/audio', async (req, res, next) => {
     try {
-        const { instanceName, number, audioUrl } = req.body;
+        const { instanceName, number, audioUrl, ptt } = req.body;
         if (!instanceName || !number || !audioUrl) {
+            logger.warn('Audio Validation Failed', { body: req.body });
             return res.status(400).json({ success: false, error: 'Missing required fields' });
         }
-        const result = await evolution.sendAudio(instanceName, number, audioUrl);
-        res.json({ success: true, data: result });
+
+        logger.info('Processing Audio Request', {
+            instanceName,
+            number,
+            audioUrl,
+            originalPtt: ptt
+        });
+
+        const mediaProcessor = require('../services/mediaProcessor');
+
+        try {
+            // 1. Convert to MP3 on backend
+            // This ensures whatever format comes in (WebM/Ogg) is normalized to MP3
+            logger.info('Converting audio to MP3 on backend...');
+            const audioBase64 = await mediaProcessor.processAudioForWhatsApp(audioUrl);
+
+            // 2. Send as Media Message with Base64
+            // Using base64 avoids Evolution having to download/convert again
+            const result = await evolution.sendMedia(instanceName, number, audioBase64, {
+                mediatype: 'audio',
+                fileName: 'audio.mp3',
+                mimetype: 'audio/mp4', // Safe for WhatsApp
+                // We send as standard audio file based on our conversion
+            });
+
+            return res.json({ success: true, data: result });
+
+        } catch (conversionError) {
+            logger.error('Backend Conversion Failed - Falling back to URL pass-through', { error: conversionError.message });
+
+            // Fallback: Just send the URL and hope for the best
+            const result = await evolution.sendMedia(instanceName, number, audioUrl, {
+                mediatype: 'audio',
+                fileName: 'audio.mp3',
+                mimetype: 'audio/mp4'
+            });
+            return res.json({ success: true, data: result, note: 'Fallback used', error: conversionError.message });
+        }
     } catch (error) {
         next(error);
     }

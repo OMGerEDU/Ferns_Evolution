@@ -153,13 +153,25 @@ router.get('/:name', async (req, res, next) => {
     try {
         const { name } = req.params;
 
-        const state = await evolution.getConnectionState(name);
+        // Run in parallel for performance
+        // We fetch both state and full list because list contains 'owner' (number) 
+        // which might be missing from state if disconnected
+        const [state, instances] = await Promise.all([
+            evolution.getConnectionState(name),
+            evolution.fetchInstances()
+        ]);
+
+        // Find this instance in the list
+        // instances is expected to be an array based on fetchInstances docs/code
+        const instanceList = Array.isArray(instances) ? instances : [];
+        const instanceInfo = instanceList.find(i => i.instanceName === name) || {};
 
         res.json({
             success: true,
             data: {
+                ...instanceInfo, // Base info from list (might have owner/number)
+                ...state,        // Connection state (overrides if more recent)
                 instanceName: name,
-                ...state,
             },
         });
     } catch (error) {

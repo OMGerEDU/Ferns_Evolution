@@ -9,16 +9,26 @@ COPY package*.json ./
 # Install dependencies (use npm install since we might not have package-lock.json)
 RUN npm install --omit=dev
 
+# Build stage for frontend
+FROM node:20-alpine AS frontend-builder
+WORKDIR /app
+COPY client/package*.json ./
+RUN npm install
+COPY client/ ./
+RUN npm run build
+
 # Production stage
 FROM node:20-alpine
 
 WORKDIR /app
 
 # Install curl for health checks
-RUN apk add --no-cache curl
+# Install curl for health checks and ffmpeg for media processing
+RUN apk add --no-cache curl ffmpeg
 
 # Copy from builder
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=frontend-builder /public/admin-new ./public/admin-new
 
 # Copy source code and package files
 COPY src/ ./src/
@@ -27,7 +37,7 @@ COPY package.json ./
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+  adduser -S nodejs -u 1001
 
 USER nodejs
 

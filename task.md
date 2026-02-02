@@ -46,3 +46,13 @@
     - [x] Verify Sticker download support in `getBase64`
     - [x] Update documentation with Sticker viewing examples
     - [x] Verify both improvements
+- [ ] **Phase 6: Admin Authentication & Deployment**
+    - [x] Update Admin UI to use API Key Login
+    - [x] Implement "Remember Me" functionality
+    - [x] Serve Admin Panel at `/admin-new`
+- [x] Verify functionality
+- [ ] **Phase 7: Automations UI Enhancements**
+    - [x] Add `currentRules` state to `app.js`
+    - [x] Implement Edit (PUT) and Copy (JSON) logic
+    - [x] Update Card UI with new buttons and click handlers
+    - [x] Verify functionality

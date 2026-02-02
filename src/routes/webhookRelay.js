@@ -4,10 +4,12 @@ const db = require('../services/db');
 const logger = require('../utils/logger');
 const automationEngine = require('../services/automationEngine');
 const evolutionAdapter = require('../adapters/evolutionAdapter');
+const greenApiAdapter = require('../adapters/greenApiAdapter');
 
 // Map of provider name to adapter
 const adapters = {
-    'evolution': evolutionAdapter
+    'evolution': evolutionAdapter,
+    'greenapi': greenApiAdapter
 };
 
 /**

@@ -31,8 +31,22 @@ app.use(requestLogger);
 app.get(['/', '/health'], (req, res) => res.json({ status: 'ok', service: 'evolution-backend', admin: '/admin' }));
 app.use('/health', healthRoutes);
 
-// Serve Admin Playground
+// Serve Admin Playground (OLD version)
 app.use('/admin', express.static(path.join(__dirname, '../public/admin')));
+
+// Serve Admin Panel (NEW version - React SPA)
+app.use('/admin-new', express.static(path.join(__dirname, '../public/admin-new')));
+
+// SPA fallback for all routes (except API)
+// This ensures that refreshing on /instances/:id works
+app.get('*', (req, res, next) => {
+    // Skip API routes, let them fall through to 404 handler if not matched
+    if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/docs') || req.path.startsWith('/wh')) {
+        return next();
+    }
+    // For any other route, serve index.html from admin-new
+    res.sendFile(path.join(__dirname, '../public/admin-new/index.html'));
+});
 
 // Admin Auth Endpoint
 app.post('/admin/auth', (req, res) => {
@@ -55,6 +69,7 @@ app.use('/api/groups', authMiddleware, require('./routes/groups'));
 app.use('/api/profile', authMiddleware, require('./routes/profile'));
 app.use('/api/tenants', authMiddleware, require('./routes/tenants'));
 app.use('/api/automations', authMiddleware, require('./routes/automations'));
+app.use('/api/webhook-config', authMiddleware, require('./routes/webhookConfig'));
 
 // Webhook routes (legacy internal)
 app.use('/api/webhooks', webhookRoutes);
@@ -66,10 +81,13 @@ app.use('/wh', webhookRelayRoutes);
 app.use(errorHandler);
 
 // Start server
-const server = app.listen(config.port, () => {
+const server = app.listen(config.port, async () => {
     logger.info(`🚀 Evolution Backend started on port ${config.port}`);
     logger.info(`📡 Evolution API URL: ${config.evolution.url}`);
     logger.info(`🔧 Environment: ${config.nodeEnv}`);
+
+    // Initialize DB Schema
+    await db.initDb();
 });
 
 // Graceful shutdown

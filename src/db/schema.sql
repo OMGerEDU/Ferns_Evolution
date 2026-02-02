@@ -21,3 +21,24 @@ CREATE TABLE IF NOT EXISTS automations (
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_automations_tenant ON automations(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_automations_enabled ON automations(enabled);
+
+-- Create instance_webhooks table
+CREATE TABLE IF NOT EXISTS instance_webhooks (
+    instance_name VARCHAR(255) PRIMARY KEY,
+    url VARCHAR(500) NOT NULL,
+    enabled BOOLEAN DEFAULT TRUE,
+    events JSONB DEFAULT '[]', -- List of events to subscribe to
+    sources JSONB DEFAULT '[]', -- List of sources (groups, private)
+    allow_media BOOLEAN DEFAULT FALSE,
+    outgoing_url VARCHAR(500),
+    track_outgoing BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Auto-migrate existing tables (Idempotent)
+ALTER TABLE instance_webhooks ADD COLUMN IF NOT EXISTS events JSONB DEFAULT '[]';
+ALTER TABLE instance_webhooks ADD COLUMN IF NOT EXISTS sources JSONB DEFAULT '[]';
+ALTER TABLE instance_webhooks ADD COLUMN IF NOT EXISTS allow_media BOOLEAN DEFAULT FALSE;
+ALTER TABLE instance_webhooks ADD COLUMN IF NOT EXISTS outgoing_url VARCHAR(500);
+ALTER TABLE instance_webhooks ADD COLUMN IF NOT EXISTS track_outgoing BOOLEAN DEFAULT FALSE;

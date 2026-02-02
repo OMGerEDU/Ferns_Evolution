@@ -43,13 +43,33 @@ const evolutionAdapter = {
      * Send a message via Evolution API
      * @param {string} instanceName 
      * @param {string} to - Remote JID
-     * @param {object} content - { type: 'text', text: '...' }
+     * @param {object} content - { type: 'text'|'interactive', ... }
      */
     sendMessage: async (instanceName, to, content) => {
         if (content.type === 'text') {
             return await evolution.sendText(instanceName, to, content.text);
         }
-        // Handle other types later
+
+        if (content.type === 'interactive') {
+            const { title, description, footer, buttons } = content.params || {};
+
+            // Format buttons for Evolution API
+            const formattedButtons = (buttons || []).map((btn, idx) => ({
+                type: 'reply',
+                reply: {
+                    id: btn.id || `btn_${idx}`,
+                    displayText: btn.text
+                }
+            }));
+
+            return await evolution.sendButtons(instanceName, to, {
+                title,
+                description,
+                footer,
+                buttons: formattedButtons
+            });
+        }
+
         logger.warn(`EvolutionAdapter: Unsupported content type ${content.type}`);
     }
 };

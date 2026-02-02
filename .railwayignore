@@ -1,0 +1,11 @@
+# Ignore large files and directories for Railway deployment
+node_modules/
+.git/
+*.log
+logs.txt
+codebase.md
+chats.json
+client/node_modules/
+client/dist/
+.env.local
+.env.*.local

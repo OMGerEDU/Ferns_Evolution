@@ -51,6 +51,22 @@
                     <a href="#update-profile-name" class="nav-link">Update Name</a>
                     <a href="#update-profile-status" class="nav-link">Update Status</a>
                 </div>
+
+                <div class="nav-section">
+                    <h3>Automations</h3>
+                    <a href="#get-automations" class="nav-link">List Rules</a>
+                    <a href="#create-automation" class="nav-link">Create Rule</a>
+                    <a href="#update-automation" class="nav-link">Update Rule</a>
+                    <a href="#toggle-automation" class="nav-link">Toggle Rule</a>
+                    <a href="#delete-automation" class="nav-link">Delete Rule</a>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Webhooks</h3>
+                    <a href="#get-webhook-config" class="nav-link">Get Config</a>
+                    <a href="#save-webhook-config" class="nav-link">Save Config</a>
+                    <a href="#delete-webhook-config" class="nav-link">Delete Config</a>
+                </div>
             </nav>
         </aside>
 
@@ -535,6 +551,260 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Automations -->
+                <section id="automations-section">
+                    <h2>Automations</h2>
+
+                    <!-- GET /api/automations -->
+                    <div class="endpoint" id="get-automations">
+                        <div class="endpoint-header">
+                            <span class="method get">GET</span>
+                            <span class="path">/api/automations</span>
+                        </div>
+                        <p class="description">List all automations for a tenant</p>
+
+                        <div class="params">
+                            <h4>Query Parameters</h4>
+                            <div class="param">
+                                <code>tenantId</code> <span class="required">required</span>
+                                <p>Tenant ID</p>
+                                <input type="text" id="input-get-automations-tenant" placeholder="default"
+                                    class="param-input" value="default">
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('get-automations')">Try it</button>
+                            <div class="response-panel" id="response-get-automations"></div>
+                        </div>
+                    </div>
+
+                    <!-- POST /api/automations -->
+                    <div class="endpoint" id="create-automation">
+                        <div class="endpoint-header">
+                            <span class="method post">POST</span>
+                            <span class="path">/api/automations</span>
+                        </div>
+                        <p class="description">Create a new automation rule</p>
+
+                        <div class="params">
+                            <h4>Request Body</h4>
+                            <div class="param">
+                                <code>tenantId</code> <span class="required">required</span>
+                                <input type="text" id="input-create-automation-tenant" placeholder="default"
+                                    class="param-input" value="default">
+                            </div>
+                            <div class="param">
+                                <code>name</code> <span class="required">required</span>
+                                <input type="text" id="input-create-automation-name" placeholder="Auto Reply"
+                                    class="param-input">
+                            </div>
+                            <div class="param">
+                                <code>trigger</code> <span class="required">required</span>
+                                <p>Trigger configuration (JSON)</p>
+                                <textarea id="input-create-automation-trigger" class="param-input"
+                                    rows="3">{"type": "message", "keywords": ["hello"]}</textarea>
+                            </div>
+                            <div class="param">
+                                <code>actions</code> <span class="required">required</span>
+                                <p>Actions configuration (JSON Array)</p>
+                                <textarea id="input-create-automation-actions" class="param-input"
+                                    rows="3">[{"type": "reply", "text": "Hi there!"}]</textarea>
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('create-automation')">Try it</button>
+                            <div class="response-panel" id="response-create-automation"></div>
+                        </div>
+                    </div>
+
+                    <!-- PUT /api/automations/:id -->
+                    <div class="endpoint" id="update-automation">
+                        <div class="endpoint-header">
+                            <span class="method put">PUT</span>
+                            <span class="path">/api/automations/:id</span>
+                        </div>
+                        <p class="description">Update an existing automation</p>
+
+                        <div class="params">
+                            <div class="param">
+                                <code>id</code> <span class="required">required</span>
+                                <input type="text" id="input-update-automation-id" placeholder="Automation ID"
+                                    class="param-input">
+                            </div>
+                            <div class="param">
+                                <code>name</code> <span class="optional">optional</span>
+                                <input type="text" id="input-update-automation-name" placeholder="New Name"
+                                    class="param-input">
+                            </div>
+                            <div class="param">
+                                <code>trigger</code> <span class="optional">optional</span>
+                                <textarea id="input-update-automation-trigger" class="param-input" rows="3"></textarea>
+                            </div>
+                            <div class="param">
+                                <code>actions</code> <span class="optional">optional</span>
+                                <textarea id="input-update-automation-actions" class="param-input" rows="3"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('update-automation')">Try it</button>
+                            <div class="response-panel" id="response-update-automation"></div>
+                        </div>
+                    </div>
+
+                    <!-- PATCH /api/automations/:id/toggle -->
+                    <div class="endpoint" id="toggle-automation">
+                        <div class="endpoint-header">
+                            <span class="method patch">PATCH</span>
+                            <span class="path">/api/automations/:id/toggle</span>
+                        </div>
+                        <p class="description">Toggle automation enabled/disabled</p>
+
+                        <div class="params">
+                            <div class="param">
+                                <code>id</code> <span class="required">required</span>
+                                <input type="text" id="input-toggle-automation-id" placeholder="Automation ID"
+                                    class="param-input">
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('toggle-automation')">Try it</button>
+                            <div class="response-panel" id="response-toggle-automation"></div>
+                        </div>
+                    </div>
+
+                    <!-- DELETE /api/automations/:id -->
+                    <div class="endpoint" id="delete-automation">
+                        <div class="endpoint-header">
+                            <span class="method delete">DELETE</span>
+                            <span class="path">/api/automations/:id</span>
+                        </div>
+                        <p class="description">Delete an automation</p>
+
+                        <div class="params">
+                            <div class="param">
+                                <code>id</code> <span class="required">required</span>
+                                <input type="text" id="input-delete-automation-id" placeholder="Automation ID"
+                                    class="param-input">
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn danger" onclick="tryEndpoint('delete-automation')">Try it</button>
+                            <div class="response-panel" id="response-delete-automation"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Webhook Configuration Endpoints -->
+                <section id="webhooks-section">
+                    <h2>Webhook Configuration</h2>
+
+                    <!-- GET /api/webhook-config/:instanceName -->
+                    <div class="endpoint" id="get-webhook-config">
+                        <div class="endpoint-header">
+                            <span class="method get">GET</span>
+                            <span class="path">/api/webhook-config/:instanceName</span>
+                        </div>
+                        <p class="description">Get webhook settings for an instance</p>
+
+                        <div class="params">
+                            <h4>Path Parameters</h4>
+                            <div class="param">
+                                <code>instanceName</code> <span class="required">required</span>
+                                <input type="text" id="input-get-webhook-config-instance" placeholder="inst_123_abc"
+                                    class="param-input">
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('get-webhook-config')">Try it</button>
+                            <div class="response-panel" id="response-get-webhook-config"></div>
+                        </div>
+                    </div>
+
+                    <!-- POST /api/webhook-config/:instanceName -->
+                    <div class="endpoint" id="save-webhook-config">
+                        <div class="endpoint-header">
+                            <span class="method post">POST</span>
+                            <span class="path">/api/webhook-config/:instanceName</span>
+                        </div>
+                        <p class="description">Save or update webhook settings</p>
+
+                        <div class="params">
+                            <h4>Path Parameters</h4>
+                            <div class="param">
+                                <code>instanceName</code> <span class="required">required</span>
+                                <input type="text" id="input-save-webhook-config-instance" placeholder="inst_123_abc"
+                                    class="param-input">
+                            </div>
+                            <h4>Body</h4>
+                            <div class="param">
+                                <code>url</code> <span class="required">required</span>
+                                <input type="text" id="input-save-webhook-config-url"
+                                    placeholder="https://your-api.com/webhook" class="param-input">
+                            </div>
+                            <div class="param">
+                                <code>enabled</code>
+                                <select id="input-save-webhook-config-enabled" class="param-input">
+                                    <option value="true">true</option>
+                                    <option value="false">false</option>
+                                </select>
+                            </div>
+                            <div class="param">
+                                <code>events</code> (array)
+                                <input type="text" id="input-save-webhook-config-events"
+                                    placeholder='["messages.upsert", "messages.update"]' class="param-input">
+                            </div>
+                            <div class="param">
+                                <code>sources</code> (array)
+                                <input type="text" id="input-save-webhook-config-sources"
+                                    placeholder='["groups", "private"]' class="param-input">
+                            </div>
+                            <div class="param">
+                                <code>allow_media</code>
+                                <select id="input-save-webhook-config-allow_media" class="param-input">
+                                    <option value="false">false</option>
+                                    <option value="true">true</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn" onclick="tryEndpoint('save-webhook-config')">Try it</button>
+                            <div class="response-panel" id="response-save-webhook-config"></div>
+                        </div>
+                    </div>
+
+                    <!-- DELETE /api/webhook-config/:instanceName -->
+                    <div class="endpoint" id="delete-webhook-config">
+                        <div class="endpoint-header">
+                            <span class="method delete">DELETE</span>
+                            <span class="path">/api/webhook-config/:instanceName</span>
+                        </div>
+                        <p class="description">Delete webhook settings</p>
+
+                        <div class="params">
+                            <h4>Path Parameters</h4>
+                            <div class="param">
+                                <code>instanceName</code> <span class="required">required</span>
+                                <input type="text" id="input-delete-webhook-config-instance" placeholder="inst_123_abc"
+                                    class="param-input">
+                            </div>
+                        </div>
+
+                        <div class="try-it-section">
+                            <button class="try-it-btn danger" onclick="tryEndpoint('delete-webhook-config')">Try
+                                it</button>
+                            <div class="response-panel" id="response-delete-webhook-config"></div>
+                        </div>
+                    </div>
+                </section>
+
             </div>
         </main>
     </div>

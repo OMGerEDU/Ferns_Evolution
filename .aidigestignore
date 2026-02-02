@@ -1,0 +1,133 @@
+# ======================
+# AI Digest Ignore File
+# ======================
+# Excludes non-codebase files for cleaner AI analysis
+
+# ======================
+# Dependencies & Build
+# ======================
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+.nyc_output/
+
+# ======================
+# Environment & Secrets
+# ======================
+.env
+.env.*
+*.local
+envexample.txt
+
+# ======================
+# Version Control
+# ======================
+.git/
+.gitignore
+.gitattributes
+
+# ======================
+# IDE & Editor
+# ======================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ======================
+# Logs & Debug
+# ======================
+*.log
+logs/
+logs.txt
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ======================
+# AI/Agent Related
+# ======================
+.agent/
+codebase.md
+*.aidigestignore
+
+# ======================
+# Docker & Infrastructure
+# ======================
+Dockerfile
+docker-compose*.yml
+Caddyfile
+.dockerignore
+
+# ======================
+# Data & Cache Files
+# ======================
+*.json
+!package.json
+*.sqlite
+*.db
+*.cache
+.cache/
+
+# ======================
+# Media & Binary Files
+# ======================
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.svg
+*.webp
+*.mp4
+*.mp3
+*.wav
+*.pdf
+*.zip
+*.tar
+*.gz
+
+# ======================
+# Documentation (optional)
+# ======================
+# Uncomment below to exclude docs
+# docs/
+# *.md
+# !README.md
+
+# ======================
+# Task & Plan Files
+# ======================
+task.md
+walkthrough.md
+implementation_plan.md
+AUTOPILOT_TASK.md
+
+# ======================
+# Scripts & Batch Files
+# ======================
+*.bat
+*.sh
+*.ps1
+
+# ======================
+# Lock Files
+# ======================
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ======================
+# Public/Static Assets
+# ======================
+public/
+
+# ======================
+# Architecture Docs
+# ======================
+architectureDesign/

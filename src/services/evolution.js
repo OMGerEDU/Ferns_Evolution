@@ -40,9 +40,9 @@ client.interceptors.response.use(
         logger.error('Evolution API error', {
             status: error.response?.status,
             url: error.config?.url,
-            message: error.message,
+            // message: error.message,
             evolutionError: errorData?.message || errorData?.response?.message || errorData,
-            fullResponse: errorData // Added to capture 400 details
+            fullResponse: JSON.stringify(errorData) // Force stringify to see everything
         });
         throw error;
     }
@@ -310,8 +310,10 @@ function getRemoteJid(number) {
 async function fetchProfile(instanceName, number) {
     const response = await retryWithBackoff(() =>
         client.get(`/chat/findStatus/${instanceName}`, {
-            params: { number: getRemoteJid(number) }
-        })
+            params: { number: getRemoteJid(number) },
+            timeout: 5000
+        }),
+        { maxRetries: 1 }
     );
     return response.data;
 }
@@ -323,7 +325,8 @@ async function fetchProfilePictureUrl(instanceName, number) {
     const response = await retryWithBackoff(() =>
         client.post(`/chat/fetchProfilePictureUrl/${instanceName}`, {
             number: getRemoteJid(number)
-        })
+        }, { timeout: 5000 }),
+        { maxRetries: 1 }
     );
     return response.data;
 }
@@ -335,7 +338,8 @@ async function fetchProfilePicture(instanceName, number) {
     const response = await retryWithBackoff(() =>
         client.post(`/chat/fetchProfilePicture/${instanceName}`, {
             number: getRemoteJid(number)
-        })
+        }, { timeout: 5000 }),
+        { maxRetries: 1 }
     );
     return response.data;
 }

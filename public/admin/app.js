@@ -1,10 +1,12 @@
 const API_URL = '/api';
 const AUTH_URL = '/admin/auth';
-let API_KEY = localStorage.getItem('evolution_api_key');
+let API_KEY = localStorage.getItem('evolution_api_key') || sessionStorage.getItem('evolution_api_key');
 
 // State
 let connectionPollInterval = null;
 let currentTenant = null;
+let currentRules = []; // Store rules for client-side access
+let editingRuleId = null; // Track which rule is being edited
 
 // UI References
 const sections = {
@@ -27,32 +29,52 @@ if (API_KEY) {
 }
 
 // --- AUTH ---
+// --- AUTH ---
 document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+    const key = document.getElementById('api-key-input').value.trim();
+    const remember = document.getElementById('remember-me').checked;
+
+    if (!key) return showNotify('Please enter a Global API Key', 'error');
+
+    // Validate Key by making a simple request
+    const btn = e.target.querySelector('button');
+    const originalText = btn.textContent;
+    btn.textContent = 'Verifying...';
+    btn.disabled = true;
 
     try {
-        const res = await fetch(AUTH_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
-        if (data.success) {
-            API_KEY = data.apiKey;
-            localStorage.setItem('evolution_api_key', API_KEY);
+        // Temporarily set key to test
+        API_KEY = key;
+        const res = await fetchAPI('/instances');
+
+        if (res.success || (res.error && !res.error.includes('Unauthorized') && !res.error.includes('Forbidden'))) {
+            // Success or unrelated error -> Key is likely good
+            if (remember) {
+                localStorage.setItem('evolution_api_key', key);
+            } else {
+                sessionStorage.setItem('evolution_api_key', key);
+            }
             showSection('dashboard');
             loadDashboard();
         } else {
-            showNotify('Invalid credentials', 'error');
+            API_KEY = null;
+            showNotify('Invalid API Key', 'error');
         }
-    } catch (e) { showNotify(e.message, 'error'); }
+    } catch (e) {
+        API_KEY = null;
+        showNotify('Connection failed: ' + e.message, 'error');
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
 });
 
 window.logout = () => {
     localStorage.removeItem('evolution_api_key');
+    sessionStorage.removeItem('evolution_api_key');
     API_KEY = null;
+    document.getElementById('api-key-input').value = '';
     showSection('login');
 };
 
@@ -112,6 +134,7 @@ function renderList(instances) {
                 <span class="status-badge ${inst.status}">${inst.status}</span>
             </div>
             <div class="instance-actions">
+                <button class="btn btn-secondary" style="margin-right:8px" onclick="goToAutomations('${inst.name}')">Automations</button>
                 ${inst.status === 'disconnected'
                 ? `<button class="btn btn-secondary" onclick="restartWizard('${inst.name}')">Connect</button>`
                 : `<button class="btn btn-secondary" onclick="logoutInstance('${inst.name}')">Logout</button>`}
@@ -121,6 +144,14 @@ function renderList(instances) {
         list.appendChild(row);
     });
 }
+
+window.goToAutomations = (instanceName) => {
+    // For MVP, we just switch tabs. In future, filter by instanceName.
+    showSection('automations');
+    // Pre-fill trigger? 
+    // const triggerInput = document.getElementById('rule-trigger');
+    // if(triggerInput) triggerInput.value = `[${instanceName}] `;
+};
 
 function updateStats(t, c, d) {
     document.getElementById('stat-total').textContent = t;
@@ -147,6 +178,7 @@ async function loadAutomations() {
         // 2. Fetch Rules
         const res = await fetchAPI(`/automations?tenantId=${currentTenant.id}`);
         if (res.success) {
+            currentRules = res.data;
             renderRules(res.data);
         } else {
             list.innerHTML = `<div style="color:red">${res.error}</div>`;
@@ -177,6 +209,9 @@ function renderRules(rules) {
     rules.forEach(rule => {
         const row = document.createElement('div');
         row.className = 'instance-row';
+        row.style.cursor = 'pointer';
+        row.onclick = () => editRule(rule.id);
+
         row.innerHTML = `
             <div class="instance-info">
                 <div>
@@ -188,13 +223,56 @@ function renderRules(rules) {
                     </div>
                 </div>
             </div>
-            <div>
-                 <button class="btn btn-danger" onclick="deleteRule(${rule.id})">Delete</button>
+            <div style="display:flex; gap:10px;">
+                 <button class="btn btn-secondary" onclick="copyRule(event, ${rule.id})">Json</button>
+                 <button class="btn btn-danger" key="delete-btn" onclick="deleteWrapper(event, ${rule.id})">Delete</button>
             </div>
         `;
         list.appendChild(row);
     });
 }
+
+window.deleteWrapper = (e, id) => {
+    e.stopPropagation();
+    deleteRule(id);
+};
+
+window.copyRule = (e, id) => {
+    e.stopPropagation();
+    const rule = currentRules.find(r => r.id === id);
+    if (!rule) return;
+
+    // Copy simplified version or full? Full is good for debugging/backup
+    const { id: _id, tenant_id, created_at, updated_at, ...cleanRule } = rule;
+
+    navigator.clipboard.writeText(JSON.stringify(cleanRule, null, 2)).then(() => {
+        showNotify('Rule JSON copied', 'success');
+    });
+};
+
+window.editRule = (id) => {
+    const rule = currentRules.find(r => r.id === id);
+    if (!rule) return;
+
+    editingRuleId = id;
+
+    // Populate form
+    document.getElementById('rule-name').value = rule.name;
+    document.getElementById('rule-trigger').value = rule.trigger.text_contains || '';
+    document.getElementById('rule-msg-type').value = rule.trigger.message_type || 'any';
+    document.getElementById('rule-source').value = rule.trigger.source || 'any';
+
+    // Assume action 0 is the main one for MVP
+    const action = rule.actions[0];
+    if (action && action.type === 'send_message') {
+        document.getElementById('rule-response').value = action.params.text || '';
+    }
+
+    // Change Modal Title (Need to query selector since no ID on H3)
+    document.querySelector('#rule-modal h3').textContent = 'Edit Automation';
+
+    document.getElementById('rule-modal').classList.add('active');
+};
 
 window.deleteRule = async (id) => {
     if (!confirm('Delete rule?')) return;
@@ -202,12 +280,22 @@ window.deleteRule = async (id) => {
     loadAutomations();
 };
 
-window.openRuleModal = () => document.getElementById('rule-modal').classList.add('active');
+window.openRuleModal = () => {
+    editingRuleId = null;
+    document.getElementById('rule-name').value = '';
+    document.getElementById('rule-trigger').value = '';
+    document.getElementById('rule-response').value = '';
+    document.querySelector('#rule-modal h3').textContent = 'Create Automation';
+    document.getElementById('rule-modal').classList.add('active');
+};
+
 window.closeRuleModal = () => document.getElementById('rule-modal').classList.remove('active');
 
 window.saveRule = async () => {
     const name = document.getElementById('rule-name').value;
     const triggerText = document.getElementById('rule-trigger').value;
+    const msgType = document.getElementById('rule-msg-type').value;
+    const source = document.getElementById('rule-source').value;
     const responseText = document.getElementById('rule-response').value;
 
     if (!name || !triggerText) {
@@ -218,19 +306,35 @@ window.saveRule = async () => {
         tenantId: currentTenant.id,
         name,
         enabled: true,
-        trigger: { provider: 'any', text_contains: triggerText },
+        trigger: {
+            provider: 'any',
+            text_contains: triggerText,
+            message_type: msgType,
+            source: source
+        },
         actions: [{ type: 'send_message', params: { text: responseText } }]
     };
 
-    const res = await fetchAPI('/automations', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-    });
+    let res;
+    if (editingRuleId) {
+        // UPDATE
+        res = await fetchAPI(`/automations/${editingRuleId}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        });
+    } else {
+        // CREATE
+        res = await fetchAPI('/automations', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+    }
 
     if (res.success) {
         closeRuleModal();
         loadAutomations();
-        showNotify('Rule saved', 'success');
+        showNotify(editingRuleId ? 'Rule updated' : 'Rule created', 'success');
+        editingRuleId = null;
     } else {
         showNotify(res.error, 'error');
     }
@@ -260,12 +364,50 @@ window.cancelWizard = () => {
     loadDashboard();
 };
 
+window.toggleProviderFields = () => {
+    const provider = document.getElementById('wiz-provider').value;
+    const nameInput = document.getElementById('wiz-name');
+    if (provider === 'greenapi') {
+        nameInput.placeholder = 'idInstance (e.g. 1101823151)';
+        document.getElementById('wiz-phone').parentElement.style.display = 'none';
+        document.getElementById('wiz-connect-title').textContent = 'Connect Green API';
+        document.getElementById('wiz-connect-desc').textContent = 'Enter your API Token below.';
+    } else {
+        nameInput.placeholder = 'e.g. support-bot';
+        document.getElementById('wiz-phone').parentElement.style.display = 'block';
+        document.getElementById('wiz-connect-title').textContent = 'Connect WhatsApp';
+        document.getElementById('wiz-connect-desc').textContent = 'Scan the QR code or enter the pairing code.';
+    }
+};
+
 window.submitWizardConfig = async () => {
+    const provider = document.getElementById('wiz-provider').value;
     const name = document.getElementById('wiz-name').value.trim();
     const phone = document.getElementById('wiz-phone').value.trim();
-    if (!name) return showNotify('Instance name required', 'error');
+
+    if (!name) return showNotify('Instance Name / ID required', 'error');
 
     wizardInstanceName = name;
+
+    // GREEN API PATH
+    if (provider === 'greenapi') {
+        // For POC, we just show them the webhook URL to configure manually
+        showWizardStep(3);
+        const whUrl = `${window.location.origin}/wh/greenapi/${currentTenant?.id || 'default'}/${currentTenant?.webhook_secret || 'secret'}`;
+        document.getElementById('wizard-step-3').innerHTML = `
+            <div style="font-size:4rem; margin-bottom:1rem;">🟢</div>
+            <div class="wizard-header">
+                <h2>Green API Config</h2>
+                <p>Set this URL in your Green API Console:</p>
+                <code style="display:block; background:#000; padding:1rem; margin:1rem 0; word-break:break-all;">${whUrl}</code>
+                <p style="font-size:0.8rem; color:#9ca3af">Note: For this POC, outgoing messages use a hardcoded token. Real implementation would save your API Token to the DB.</p>
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="finishWizard()">Done</button>
+        `;
+        return;
+    }
+
+    // EVOLUTION PATH (Existing)
     showWizardStep(2); // Move to visual waiting state
 
     // Reset displays

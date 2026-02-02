@@ -380,14 +380,15 @@
                 </div>
                 <form id="login-form">
                     <div class="input-group">
-                        <label>Username</label>
-                        <input type="text" id="username">
+                        <label>Global API Key</label>
+                        <input type="password" id="api-key-input" placeholder="Enter Global API Key">
                     </div>
-                    <div class="input-group">
-                        <label>Password</label>
-                        <input type="password" id="password">
+                    <div class="input-group" style="display:flex; align-items:center; margin-bottom: 2rem;">
+                        <input type="checkbox" id="remember-me" style="width:auto; margin-right:10px;">
+                        <label for="remember-me" style="margin-bottom:0; cursor:pointer; color: white;">Remember
+                            Me</label>
                     </div>
-                    <button type="submit" class="btn btn-primary" style="width:100%">Sign In</button>
+                    <button type="submit" class="btn btn-primary" style="width:100%">Connect</button>
                 </form>
             </div>
         </div>
@@ -450,8 +451,15 @@
                     <p>Enter details to connect a new WhatsApp number.</p>
                 </div>
                 <div class="input-group">
-                    <label>Instance Name</label>
-                    <input type="text" id="wiz-name" placeholder="e.g. support-bot">
+                    <label>Provider</label>
+                    <select id="wiz-provider" onchange="toggleProviderFields()">
+                        <option value="evolution">Evolution API (WhatsApp)</option>
+                        <option value="greenapi">Green API (WhatsApp)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Instance Name / ID</label>
+                    <input type="text" id="wiz-name" placeholder="e.g. support-bot (Evolution) or 11018... (GreenAPI)">
                 </div>
                 <div class="input-group">
                     <label>Phone Number (Optional - for Pairing Code)</label>
@@ -511,7 +519,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=3.0"></script>
+
     <style>
         @keyframes spin {
             to {
@@ -553,6 +561,26 @@
             <div class="input-group">
                 <label>Trigger: Text Contains</label>
                 <input type="text" id="rule-trigger" placeholder="hello">
+            </div>
+
+            <div style="display:flex; gap:1rem;">
+                <div class="input-group" style="flex:1;">
+                    <label>Message Type</label>
+                    <select id="rule-msg-type">
+                        <option value="any">Any</option>
+                        <option value="text">Text</option>
+                        <option value="image">Image</option>
+                        <option value="audio">Audio</option>
+                    </select>
+                </div>
+                <div class="input-group" style="flex:1;">
+                    <label>Source</label>
+                    <select id="rule-source">
+                        <option value="any">Any (All Chats)</option>
+                        <option value="private">Private Only</option>
+                        <option value="group">Group Only</option>
+                    </select>
+                </div>
             </div>
 
             <div class="input-group">

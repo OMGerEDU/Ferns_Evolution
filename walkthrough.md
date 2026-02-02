@@ -98,3 +98,9 @@ The interactive documentation now renders Base64 previews automatically.
 
 > [!NOTE]
 > All new endpoints return standardized JSON errors if required fields are missing.
+
+### Automations UI
+Enhanced the Automations tab in the Admin Panel (`/admin-new`):
+- **Edit**: Click on any automation card to open the edit modal.
+- **Copy**: Use the "Json" button to copy the raw automation object to your clipboard.
+- **Delete**: Remove automations with the Delete button.
