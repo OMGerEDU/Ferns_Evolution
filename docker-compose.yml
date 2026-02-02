@@ -33,7 +33,7 @@ services:
 
   # Frontend (React/Vite)
   frontend:
-    build: 
+    build:
       context: ./client
       dockerfile: Dockerfile
     container_name: evolution_frontend
@@ -54,10 +54,10 @@ services:
     container_name: evolution_backend
     restart: always
     ports:
-      - "3000:3000"
+      - "3002:3002"
     environment:
       NODE_ENV: production
-      PORT: "3000"
+      PORT: "3002"
       API_KEY: ${API_KEY}
       EVOLUTION_API_URL: http://evolution_api:8080
       EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
@@ -73,7 +73,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:3002/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -87,7 +87,7 @@ services:
     container_name: evolution_api
     restart: always
     ports:
-      - "8091:8080"
+      - "8092:8080"
     environment:
       SERVER_PORT: "8080"
       SERVER_URL: ${EVOLUTION_API_URL:-http://evolution_api:8080}
@@ -119,7 +119,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "require('net').connect(8080, '127.0.0.1').on('error', () => process.exit(1)).on('connect', () => process.exit(0))"]
+      test: [ "CMD", "node", "-e", "require('net').connect(8080, '127.0.0.1').on('error', () => process.exit(1)).on('connect', () => process.exit(0))" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -139,7 +139,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U evolution -d evolution"]
+      test: [ "CMD-SHELL", "pg_isready -U evolution -d evolution" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -152,11 +152,11 @@ services:
     image: redis:7-alpine
     container_name: evolution_redis
     restart: always
-    command: ["redis-server", "--appendonly", "yes"]
+    command: [ "redis-server", "--appendonly", "yes" ]
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5

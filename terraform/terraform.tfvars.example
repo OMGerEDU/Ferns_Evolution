@@ -1,0 +1,14 @@
+# terraform.tfvars
+# Copy this to terraform.tfvars and fill in your values
+# DO NOT commit this file to git!
+
+# Your secret API keys
+api_key          = "54yWPufPt9y2Wp9QUap"
+evolution_api_key = "qU6wW154sRKLuPs861q"
+webhook_secret    = "KK8HqPlJNqJctApJ98n"
+
+# Webhook URL
+webhook_url = "https://evolution.omger.cloud/api/webhooks/evolution"
+
+# GitHub repository (update with your actual repo)
+github_repo = "https://github.com/YOUR_USERNAME/EvolutionBackend"
