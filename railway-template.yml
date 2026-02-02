@@ -1,0 +1,62 @@
+# Railway Template for EvolutionBackend
+# This is a Railway "Button" template that provisions EVERYTHING automatically
+
+services:
+  - name: backend
+    source:
+      type: dockerfile
+      dockerfilePath: ./Dockerfile
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "8080"
+      - key: API_KEY
+        generate: true  # Railway will auto-generate
+      - key: EVOLUTION_API_URL
+        value: http://${{RAILWAY_SERVICE_NAME_EVOLUTION_API}}.railway.internal:8080
+      - key: DATABASE_URL
+        serviceRef: postgres
+      - key: REDIS_URL
+        serviceRef: redis
+    healthcheck:
+      path: /health
+      interval: 30
+      timeout: 10
+
+  - name: evolution-api
+    image: atendai/evolution-api:v2.2.2
+    envs:
+      - key: SERVER_PORT
+        value: "8080"
+      - key: AUTHENTICATION_TYPE
+        value: apikey
+      - key: AUTHENTICATION_API_KEY
+        generate: true
+      - key: DATABASE_ENABLED
+        value: "true"
+      - key: DATABASE_PROVIDER
+        value: postgresql
+      - key: DATABASE_CONNECTION_URI
+        serviceRef: postgres
+      - key: CACHE_REDIS_ENABLED
+        value: "true"
+      - key: CACHE_REDIS_URI
+        serviceRef: redis
+      - key: CACHE_REDIS_PREFIX_KEY
+        value: "evolution:"
+
+  - name: postgres
+    plan: starter
+    source:
+      image: postgres:15-alpine
+    variables:
+      POSTGRES_DB: evolution
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD:
+        generate: true
+
+  - name: redis
+    plan: starter
+    source:
+      image: redis:7-alpine

@@ -1,0 +1,57 @@
+# Railway-compatible Docker Compose
+# This version removes Railway-incompatible features and uses Railway-managed databases
+
+services:
+  # Our Backend Service (Node.js)
+  backend:
+    build: .
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      # These will be set in Railway dashboard
+      API_KEY: ${API_KEY}
+      EVOLUTION_API_URL: http://evolution-api.railway.internal:8080
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      WEBHOOK_TARGET_URL: ${WEBHOOK_TARGET_URL}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      # Railway provides these when you link PostgreSQL/Redis services
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+    restart: always
+
+  # Evolution API (WhatsApp Gateway)
+  evolution-api:
+    image: atendai/evolution-api:v2.2.2
+    environment:
+      SERVER_PORT: "8080"
+      SERVER_URL: ${SERVER_URL}
+      AUTHENTICATION_TYPE: apikey
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      # Railway will provide DATABASE_URL
+      DATABASE_CONNECTION_URI: ${DATABASE_URL}
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      CACHE_REDIS_ENABLED: "true"
+      # Railway will provide REDIS_URL
+      CACHE_REDIS_URI: ${REDIS_URL}
+      CACHE_REDIS_PREFIX_KEY: "evolution:"
+      WEBHOOK_GLOBAL_URL: ${WEBHOOK_GLOBAL_URL}
+      WEBHOOK_GLOBAL_ENABLED: "true"
+      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "true"
+      WEBHOOK_EVENTS_QRCODE_UPDATED: "true"
+      WEBHOOK_EVENTS_CONNECTION_UPDATE: "true"
+      WEBHOOK_EVENTS_MESSAGES_UPSERT: "true"
+      WEBHOOK_EVENTS_MESSAGES_UPDATE: "true"
+      WEBHOOK_EVENTS_MESSAGES_SET: "true"
+      WEBHOOK_EVENTS_SEND_MESSAGE: "true"
+      CONFIG_SESSION_PHONE_VERSION: "2.3000.1028716292"
+    restart: always
+
+# Notes:
+# - PostgreSQL and Redis are added separately as Railway managed databases
+# - Railway handles networking automatically (no need for networks definition)
+# - Volumes should be added via Railway dashboard if needed
+# - Caddy and Cloudflare tunnel not needed (Railway provides HTTPS)

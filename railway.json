@@ -1,12 +1,52 @@
 {
     "$schema": "https://railway.app/railway.schema.json",
-    "build": {
-        "builder": "DOCKERFILE",
-        "dockerfilePath": "Dockerfile"
-    },
-    "deploy": {
-        "numReplicas": 1,
-        "restartPolicyType": "ON_FAILURE",
-        "restartPolicyMaxRetries": 10
+    "services": {
+        "backend": {
+            "source": {
+                "repo": "EvolutionBackend"
+            },
+            "build": {
+                "builder": "DOCKERFILE",
+                "dockerfilePath": "Dockerfile"
+            },
+            "healthcheck": {
+                "path": "/health",
+                "interval": 30,
+                "timeout": 10
+            },
+            "variables": {
+                "NODE_ENV": "production",
+                "PORT": "8080",
+                "EVOLUTION_API_URL": "${{evolution-api.RAILWAY_PRIVATE_DOMAIN}}:8080"
+            },
+            "serviceConnect": [
+                "postgres",
+                "redis",
+                "evolution-api"
+            ]
+        },
+        "evolution-api": {
+            "image": "atendai/evolution-api:v2.2.2",
+            "variables": {
+                "SERVER_PORT": "8080",
+                "AUTHENTICATION_TYPE": "apikey",
+                "DATABASE_ENABLED": "true",
+                "DATABASE_PROVIDER": "postgresql",
+                "DATABASE_CONNECTION_URI": "${{postgres.DATABASE_URL}}",
+                "CACHE_REDIS_ENABLED": "true",
+                "CACHE_REDIS_URI": "${{redis.REDIS_URL}}",
+                "CACHE_REDIS_PREFIX_KEY": "evolution:"
+            },
+            "serviceConnect": [
+                "postgres",
+                "redis"
+            ]
+        },
+        "postgres": {
+            "template": "postgresql"
+        },
+        "redis": {
+            "template": "redis"
+        }
     }
 }

@@ -41,6 +41,20 @@ async function checkPostgres() {
     const net = require('net');
     const { postgres } = config.healthCheck;
 
+    // Parse DATABASE_URL if present, otherwise use host/port
+    let host = postgres.host;
+    let port = postgres.port;
+
+    if (postgres.connectionString) {
+        try {
+            const url = new URL(postgres.connectionString);
+            host = url.hostname;
+            port = parseInt(url.port, 10) || 5432;
+        } catch (error) {
+            logger.error(`Failed to parse DATABASE_URL: ${error.message}`);
+        }
+    }
+
     return new Promise((resolve) => {
         const socket = new net.Socket();
         const start = Date.now();
@@ -59,11 +73,11 @@ async function checkPostgres() {
         });
 
         socket.on('error', (err) => {
-            logger.error(`Postgres health check failed: ${err.message}`, { host: postgres.host, port: postgres.port });
+            logger.error(`Postgres health check failed: ${err.message}`, { host, port });
             resolve({ healthy: false, error: err.message });
         });
 
-        socket.connect(postgres.port, postgres.host);
+        socket.connect(port, host);
     });
 }
 
@@ -74,6 +88,20 @@ async function checkRedis() {
     const net = require('net');
     const { redis } = config.healthCheck;
 
+    // Parse REDIS_URL if present, otherwise use host/port
+    let host = redis.host;
+    let port = redis.port;
+
+    if (redis.connectionString) {
+        try {
+            const url = new URL(redis.connectionString);
+            host = url.hostname;
+            port = parseInt(url.port, 10) || 6379;
+        } catch (error) {
+            logger.error(`Failed to parse REDIS_URL: ${error.message}`);
+        }
+    }
+
     return new Promise((resolve) => {
         const socket = new net.Socket();
         const start = Date.now();
@@ -92,11 +120,11 @@ async function checkRedis() {
         });
 
         socket.on('error', (err) => {
-            logger.error(`Redis health check failed: ${err.message}`, { host: redis.host, port: redis.port });
+            logger.error(`Redis health check failed: ${err.message}`, { host, port });
             resolve({ healthy: false, error: err.message });
         });
 
-        socket.connect(redis.port, redis.host);
+        socket.connect(port, host);
     });
 }
 

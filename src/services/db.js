@@ -4,13 +4,18 @@ const path = require('path');
 const config = require('../config');
 const logger = require('../utils/logger');
 
-const pool = new Pool({
-    host: config.healthCheck.postgres.host,
-    port: config.healthCheck.postgres.port,
-    user: config.healthCheck.postgres.user,
-    password: config.healthCheck.postgres.password,
-    database: config.healthCheck.postgres.database,
-});
+// Support both DATABASE_URL (Railway, managed Postgres) and individual config (local docker-compose)
+const poolConfig = config.healthCheck.postgres.connectionString
+    ? { connectionString: config.healthCheck.postgres.connectionString }
+    : {
+        host: config.healthCheck.postgres.host,
+        port: config.healthCheck.postgres.port,
+        user: config.healthCheck.postgres.user,
+        password: config.healthCheck.postgres.password,
+        database: config.healthCheck.postgres.database,
+    };
+
+const pool = new Pool(poolConfig);
 
 pool.on('error', (err) => {
     logger.error('Unexpected error on idle client', err);
