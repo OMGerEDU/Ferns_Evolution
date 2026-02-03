@@ -12,7 +12,7 @@
     }
 
     # Admin UI -> frontend
-    handle_path /admin-new/* {
+    handle /admin-new/* {
         reverse_proxy frontend:5173
     }
 
