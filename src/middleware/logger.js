@@ -18,12 +18,15 @@ module.exports = (req, res, next) => {
         };
 
         // Log level based on status code
+        // Add function context if configured (from other middlewares) or just use method+path
+        const context = req.route ? `${req.method} ${req.route.path}` : `${req.method} ${req.path}`;
+
         if (res.statusCode >= 500) {
-            logger.error('Request failed', logData);
+            logger.error(`Request failed: ${context}`, logData);
         } else if (res.statusCode >= 400) {
-            logger.warn('Request error', logData);
+            logger.warn(`Request error: ${context}`, logData);
         } else {
-            logger.info('Request completed', logData);
+            logger.info(`Request completed: ${context}`, logData);
         }
     });
 

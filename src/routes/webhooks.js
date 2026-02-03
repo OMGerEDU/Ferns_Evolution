@@ -69,11 +69,15 @@ router.post('/evolution/:event?', async (req, res) => {
                     const subscribedSources = typeof config.sources === 'string' ? JSON.parse(config.sources) : (config.sources || []);
 
                     // Check Event Type
-                    // normalize event name from params or body
-                    const currentEvent = event === 'unknown' ? data.event : event;
+                    // normalize event name from params or body: "messages-upsert" -> "messages.upsert"
+                    let currentEvent = event === 'unknown' ? data.event : event;
+                    if (currentEvent && currentEvent.includes('-')) {
+                        currentEvent = currentEvent.replace(/-/g, '.');
+                    }
 
                     logger.debug(`Evaluating webhook for ${instanceName}`, {
                         event: currentEvent,
+                        rawEvent: event,
                         subscribedEvents,
                         subscribedSources,
                         config

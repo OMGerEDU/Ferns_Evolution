@@ -15,6 +15,7 @@ const client = axios.create({
 });
 
 // Add API key to all requests
+// Add API key to all requests
 client.interceptors.request.use((request) => {
     if (config.evolution.apiKey) {
         request.headers['apikey'] = config.evolution.apiKey;
@@ -22,6 +23,7 @@ client.interceptors.request.use((request) => {
     logger.debug('Evolution API request', {
         method: request.method,
         url: request.url,
+        function: request.customContext?.functionName // Log function name if available
     });
     return request;
 });
@@ -32,14 +34,17 @@ client.interceptors.response.use(
         logger.debug('Evolution API response', {
             status: response.status,
             url: response.config.url,
+            function: response.config.customContext?.functionName
         });
         return response;
     },
     (error) => {
         const errorData = error.response?.data;
+        const functionName = error.config?.customContext?.functionName || 'Unknown Function';
 
         // Construct a detailed error object for logs
         const logData = {
+            function: functionName,
             url: error.config?.url,
             method: error.config?.method,
             status: error.response?.status,
@@ -50,13 +55,13 @@ client.interceptors.response.use(
         // Try to extract useful message from Evolution response
         if (errorData) {
             logData.evolutionError = errorData.message || errorData.response?.message || errorData.error || errorData;
-            // Only stringify if it's an object to avoid cluttering logs
             if (typeof errorData === 'object') {
                 logData.fullResponse = JSON.stringify(errorData);
             }
         }
 
-        logger.error('Evolution API error', logData);
+        // Use a descriptive message including the function name
+        logger.error(`Evolution API Error in ${functionName}`, logData);
         throw error;
     }
 );
@@ -86,7 +91,7 @@ async function createInstance(instanceName, options = {}) {
     });
 
     const response = await retryWithBackoff(() =>
-        client.post('/instance/create', payload)
+        client.post('/instance/create', payload, { customContext: { functionName: 'createInstance' } })
     );
 
     return response.data;
@@ -97,7 +102,7 @@ async function createInstance(instanceName, options = {}) {
  */
 async function deleteInstance(instanceName) {
     const response = await retryWithBackoff(() =>
-        client.delete(`/instance/delete/${instanceName}`)
+        client.delete(`/instance/delete/${instanceName}`, { customContext: { functionName: 'deleteInstance' } })
     );
 
     return response.data;
@@ -108,7 +113,7 @@ async function deleteInstance(instanceName) {
  */
 async function connect(instanceName) {
     const response = await retryWithBackoff(() =>
-        client.get(`/instance/connect/${instanceName}`)
+        client.get(`/instance/connect/${instanceName}`, { customContext: { functionName: 'connect' } })
     );
 
     return response.data;
@@ -119,7 +124,7 @@ async function connect(instanceName) {
  */
 async function fetchInstances() {
     const response = await retryWithBackoff(() =>
-        client.get('/instance/fetchInstances')
+        client.get('/instance/fetchInstances', { customContext: { functionName: 'fetchInstances' } })
     );
 
     return response.data;
@@ -130,7 +135,7 @@ async function fetchInstances() {
  */
 async function getConnectionState(instanceName) {
     const response = await retryWithBackoff(() =>
-        client.get(`/instance/connectionState/${instanceName}`)
+        client.get(`/instance/connectionState/${instanceName}`, { customContext: { functionName: 'getConnectionState' } })
     );
 
     return response.data;
@@ -141,7 +146,7 @@ async function getConnectionState(instanceName) {
  */
 async function logout(instanceName) {
     const response = await retryWithBackoff(() =>
-        client.delete(`/instance/logout/${instanceName}`)
+        client.delete(`/instance/logout/${instanceName}`, { customContext: { functionName: 'logout' } })
     );
 
     return response.data;
@@ -152,7 +157,7 @@ async function logout(instanceName) {
  */
 async function restart(instanceName) {
     const response = await retryWithBackoff(() =>
-        client.put(`/instance/restart/${instanceName}`)
+        client.put(`/instance/restart/${instanceName}`, {}, { customContext: { functionName: 'restart' } })
     );
 
     return response.data;
@@ -169,7 +174,7 @@ async function sendText(instanceName, number, text, options = {}) {
     };
 
     const response = await retryWithBackoff(() =>
-        client.post(`/message/sendText/${instanceName}`, payload)
+        client.post(`/message/sendText/${instanceName}`, payload, { customContext: { functionName: 'sendText' } })
     );
 
     return response.data;
@@ -188,7 +193,7 @@ async function sendMedia(instanceName, number, mediaUrl, options = {}) {
     };
 
     const response = await retryWithBackoff(() =>
-        client.post(`/message/sendMedia/${instanceName}`, payload)
+        client.post(`/message/sendMedia/${instanceName}`, payload, { customContext: { functionName: 'sendMedia' } })
     );
 
     return response.data;
@@ -208,7 +213,7 @@ async function sendAudio(instanceName, number, audioUrl, options = {}) {
     };
 
     const response = await retryWithBackoff(() =>
-        client.post(`/message/sendWhatsAppAudio/${instanceName}`, payload)
+        client.post(`/message/sendWhatsAppAudio/${instanceName}`, payload, { customContext: { functionName: 'sendAudio' } })
     );
 
     return response.data;
@@ -227,7 +232,7 @@ async function sendLocation(instanceName, number, latitude, longitude, options =
     };
 
     const response = await retryWithBackoff(() =>
-        client.post(`/message/sendLocation/${instanceName}`, payload)
+        client.post(`/message/sendLocation/${instanceName}`, payload, { customContext: { functionName: 'sendLocation' } })
     );
 
     return response.data;
@@ -243,7 +248,7 @@ async function sendContact(instanceName, number, contact) {
     };
 
     const response = await retryWithBackoff(() =>
-        client.post(`/message/sendContact/${instanceName}`, payload)
+        client.post(`/message/sendContact/${instanceName}`, payload, { customContext: { functionName: 'sendContact' } })
     );
 
     return response.data;
@@ -261,7 +266,7 @@ async function sendReaction(instanceName, messageKey, reaction) {
     };
 
     const response = await retryWithBackoff(() =>
-        client.post(`/message/sendReaction/${instanceName}`, payload)
+        client.post(`/message/sendReaction/${instanceName}`, payload, { customContext: { functionName: 'sendReaction' } })
     );
 
     return response.data;
@@ -281,7 +286,7 @@ async function sendPoll(instanceName, number, name, options) {
     };
 
     const response = await retryWithBackoff(() =>
-        client.post(`/message/sendPoll/${instanceName}`, payload)
+        client.post(`/message/sendPoll/${instanceName}`, payload, { customContext: { functionName: 'sendPoll' } })
     );
 
     return response.data;
@@ -298,7 +303,7 @@ async function sendSticker(instanceName, number, stickerUrl, options = {}) {
     };
 
     const response = await retryWithBackoff(() =>
-        client.post(`/message/sendSticker/${instanceName}`, payload)
+        client.post(`/message/sendSticker/${instanceName}`, payload, { customContext: { functionName: 'sendSticker' } })
     );
 
     return response.data;
@@ -324,7 +329,8 @@ async function fetchProfile(instanceName, number) {
     const response = await retryWithBackoff(() =>
         client.get(`/chat/findStatus/${instanceName}`, {
             params: { number: getRemoteJid(number) },
-            timeout: 5000
+            timeout: 5000,
+            customContext: { functionName: 'fetchProfile' }
         }),
         { maxRetries: 1 }
     );
@@ -338,7 +344,7 @@ async function fetchProfilePictureUrl(instanceName, number) {
     const response = await retryWithBackoff(() =>
         client.post(`/chat/fetchProfilePictureUrl/${instanceName}`, {
             number: getRemoteJid(number)
-        }, { timeout: 5000 }),
+        }, { timeout: 5000, customContext: { functionName: 'fetchProfilePictureUrl' } }),
         { maxRetries: 1 }
     );
     return response.data;
@@ -351,7 +357,7 @@ async function fetchProfilePicture(instanceName, number) {
     const response = await retryWithBackoff(() =>
         client.post(`/chat/fetchProfilePicture/${instanceName}`, {
             number: getRemoteJid(number)
-        }, { timeout: 5000 }),
+        }, { timeout: 5000, customContext: { functionName: 'fetchProfilePicture' } }),
         { maxRetries: 1 }
     );
     return response.data;
@@ -362,7 +368,7 @@ async function fetchProfilePicture(instanceName, number) {
  */
 async function updateProfileName(instanceName, name) {
     const response = await retryWithBackoff(() =>
-        client.post(`/profile/updateProfileName/${instanceName}`, { name })
+        client.post(`/profile/updateProfileName/${instanceName}`, { name }, { customContext: { functionName: 'updateProfileName' } })
     );
     return response.data;
 }
@@ -372,7 +378,7 @@ async function updateProfileName(instanceName, name) {
  */
 async function updateProfileStatus(instanceName, status) {
     const response = await retryWithBackoff(() =>
-        client.post(`/profile/updateProfileStatus/${instanceName}`, { status })
+        client.post(`/profile/updateProfileStatus/${instanceName}`, { status }, { customContext: { functionName: 'updateProfileStatus' } })
     );
     return response.data;
 }
@@ -382,7 +388,7 @@ async function updateProfileStatus(instanceName, status) {
  */
 async function updateProfilePicture(instanceName, picture) {
     const response = await retryWithBackoff(() =>
-        client.post(`/profile/updateProfilePicture/${instanceName}`, { picture })
+        client.post(`/profile/updateProfilePicture/${instanceName}`, { picture }, { customContext: { functionName: 'updateProfilePicture' } })
     );
     return response.data;
 }
@@ -400,7 +406,7 @@ async function createGroup(instanceName, subject, participants, description) {
         description: description || ''
     };
     const response = await retryWithBackoff(() =>
-        client.post(`/group/create/${instanceName}`, payload)
+        client.post(`/group/create/${instanceName}`, payload, { customContext: { functionName: 'createGroup' } })
     );
     return response.data;
 }
@@ -419,7 +425,7 @@ async function fetchGroups(instanceName) {
                 participants: [] // Participants not available in findChats summary
             }));
     } catch (error) {
-        logger.error(`Error fetching groups via findChats strategy: ${error.message}`);
+        logger.error(`Error fetching groups via findChats strategy: ${error.message}`, { function: 'fetchGroups' });
         throw error;
     }
 }
@@ -429,7 +435,7 @@ async function fetchGroups(instanceName) {
  */
 async function fetchGroupParticipants(instanceName, groupJid) {
     const response = await retryWithBackoff(() =>
-        client.get(`/group/participants/${instanceName}?groupJid=${groupJid}`)
+        client.get(`/group/participants/${instanceName}?groupJid=${groupJid}`, { customContext: { functionName: 'fetchGroupParticipants' } })
     );
     return response.data;
 }
@@ -444,7 +450,7 @@ async function updateGroupParticipants(instanceName, groupJid, action, participa
         participants: Array.isArray(participants) ? participants : [participants]
     };
     const response = await retryWithBackoff(() =>
-        client.post(`/group/updateParticipant/${instanceName}?groupJid=${groupJid}`, payload)
+        client.post(`/group/updateParticipant/${instanceName}?groupJid=${groupJid}`, payload, { customContext: { functionName: 'updateGroupParticipants' } })
     );
     return response.data;
 }
@@ -457,7 +463,7 @@ async function updateGroupParticipants(instanceName, groupJid, action, participa
  */
 async function fetchChats(instanceName) {
     const response = await retryWithBackoff(() =>
-        client.post(`/chat/findChats/${instanceName}`)
+        client.post(`/chat/findChats/${instanceName}`, {}, { customContext: { functionName: 'fetchChats' } })
     );
     return response.data;
 }
@@ -471,7 +477,7 @@ async function archiveChat(instanceName, number, archive = true) {
         archive
     };
     const response = await retryWithBackoff(() =>
-        client.post(`/chat/archiveChat/${instanceName}`, payload)
+        client.post(`/chat/archiveChat/${instanceName}`, payload, { customContext: { functionName: 'archiveChat' } })
     );
     return response.data;
 }
@@ -481,7 +487,7 @@ async function archiveChat(instanceName, number, archive = true) {
  */
 async function deleteChat(instanceName, number) {
     const response = await retryWithBackoff(() =>
-        client.delete(`/chat/deleteChat/${instanceName}/${getRemoteJid(number)}`)
+        client.delete(`/chat/deleteChat/${instanceName}/${getRemoteJid(number)}`, { customContext: { functionName: 'deleteChat' } })
     );
     return response.data;
 }
@@ -494,7 +500,7 @@ async function markAsRead(instanceName, messageKey) {
         readMessages: [messageKey],
     };
     const response = await retryWithBackoff(() =>
-        client.put(`/chat/markMessageAsRead/${instanceName}`, payload)
+        client.put(`/chat/markMessageAsRead/${instanceName}`, payload, { customContext: { functionName: 'markAsRead' } })
     );
     return response.data;
 }
@@ -507,7 +513,7 @@ async function deleteMessage(instanceName, messageKey) {
         key: messageKey,
     };
     const response = await retryWithBackoff(() =>
-        client.delete(`/chat/deleteMessageForEveryone/${instanceName}`, { data: payload })
+        client.delete(`/chat/deleteMessageForEveryone/${instanceName}`, { data: payload, customContext: { functionName: 'deleteMessage' } })
     );
     return response.data;
 }
@@ -517,7 +523,7 @@ async function deleteMessage(instanceName, messageKey) {
  */
 async function findMessages(instanceName, options = {}) {
     const response = await retryWithBackoff(() =>
-        client.post(`/chat/findMessages/${instanceName}`, options)
+        client.post(`/chat/findMessages/${instanceName}`, options, { customContext: { functionName: 'findMessages' } })
     );
     return response.data;
 }
@@ -534,7 +540,7 @@ async function updateMessage(instanceName, messageKey, newMessage) {
     };
     // Evolution v2 endpoint for editing
     const response = await retryWithBackoff(() =>
-        client.put(`/chat/updateMessage/${instanceName}`, payload)
+        client.put(`/chat/updateMessage/${instanceName}`, payload, { customContext: { functionName: 'updateMessage' } })
     );
     return response.data;
 }
@@ -549,7 +555,7 @@ async function sendPresence(instanceName, number, presence) {
         delay: 1200
     };
     const response = await retryWithBackoff(() =>
-        client.post(`/chat/sendPresence/${instanceName}`, payload)
+        client.post(`/chat/sendPresence/${instanceName}`, payload, { customContext: { functionName: 'sendPresence' } })
     );
     return response.data;
 }
@@ -590,7 +596,7 @@ async function getBase64(instanceName, message) {
             console.log(`[Evolution] Looking up raw message with payload:`, JSON.stringify(findPayload));
 
             const findRes = await retryWithBackoff(() =>
-                client.post(`/chat/findMessages/${instanceName}`, findPayload)
+                client.post(`/chat/findMessages/${instanceName}`, findPayload, { customContext: { functionName: 'getBase64_find' } })
             );
 
             const messages = Array.isArray(findRes.data) ? findRes.data : (findRes.data?.messages || []);
@@ -617,7 +623,7 @@ async function getBase64(instanceName, message) {
 
     try {
         const response = await retryWithBackoff(() =>
-            client.post(`/chat/getBase64FromMediaMessage/${instanceName}`, payload)
+            client.post(`/chat/getBase64FromMediaMessage/${instanceName}`, payload, { customContext: { functionName: 'getBase64' } })
         );
         return response.data;
     } catch (error) {
@@ -634,7 +640,7 @@ async function getBase64(instanceName, message) {
  */
 async function healthCheck() {
     try {
-        const response = await client.get('/health');
+        const response = await client.get('/health', { customContext: { functionName: 'healthCheck' } });
         return {
             healthy: true,
             data: response.data,
@@ -653,7 +659,7 @@ async function healthCheck() {
  */
 async function findWebhook(instanceName) {
     const response = await retryWithBackoff(() =>
-        client.get(`/webhook/find/${instanceName}`)
+        client.get(`/webhook/find/${instanceName}`, { customContext: { functionName: 'findWebhook' } })
     );
     return response.data;
 }
@@ -690,7 +696,7 @@ async function setWebhook(instanceName, webhookUrl, enabled = true, events = nul
     payload.enabled = enabled;
 
     const response = await retryWithBackoff(() =>
-        client.post(`/webhook/set/${instanceName}`, payload)
+        client.post(`/webhook/set/${instanceName}`, payload, { customContext: { functionName: 'setWebhook' } })
     );
     return response.data;
 }
