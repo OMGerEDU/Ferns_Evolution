@@ -37,14 +37,26 @@ client.interceptors.response.use(
     },
     (error) => {
         const errorData = error.response?.data;
-        logger.error('Evolution API error', {
-            status: error.response?.status,
+
+        // Construct a detailed error object for logs
+        const logData = {
             url: error.config?.url,
+            method: error.config?.method,
+            status: error.response?.status,
             errorMessage: error.message,
-            errorCode: error.code,
-            evolutionError: errorData?.message || errorData?.response?.message || errorData,
-            fullResponse: JSON.stringify(errorData) // Force stringify to see everything
-        });
+            errorCode: error.code, // e.g. ECONNREFUSED
+        };
+
+        // Try to extract useful message from Evolution response
+        if (errorData) {
+            logData.evolutionError = errorData.message || errorData.response?.message || errorData.error || errorData;
+            // Only stringify if it's an object to avoid cluttering logs
+            if (typeof errorData === 'object') {
+                logData.fullResponse = JSON.stringify(errorData);
+            }
+        }
+
+        logger.error('Evolution API error', logData);
         throw error;
     }
 );
