@@ -121,6 +121,10 @@ router.post('/evolution/:event?', async (req, res) => {
                                 raw_data: data // Include original data for reference
                             };
 
+                            // Determine URL (Default to main, override for outgoing if needed)
+                            let targetUrl = config.url;
+                            let isFromMe = false; // Default for non-message events
+
                             // Enrich message events with structured data
                             if (currentEvent === 'messages.upsert' || currentEvent === 'messages.update') {
                                 const message = data.data;
@@ -158,15 +162,14 @@ router.post('/evolution/:event?', async (req, res) => {
                                 // Determine chat type
                                 const remoteJid = key.remoteJid || '';
                                 const isGroup = remoteJid.endsWith('@g.us');
-                                const isFromMe = key.fromMe || false;
+                                isFromMe = key.fromMe || false;
 
                                 // Filter Outgoing Messages
                                 if (isFromMe && !config.track_outgoing) {
                                     shouldForward = false;
                                 }
 
-                                // Select URL (Outgoing vs Incoming)
-                                let targetUrl = config.url;
+                                // Select URL (Outgoing vs Incoming) for messages
                                 if (isFromMe && config.track_outgoing && config.outgoing_url) {
                                     targetUrl = config.outgoing_url;
                                 }
