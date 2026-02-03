@@ -36,7 +36,17 @@ const logger = winston.createLogger({
             path: '/tk8ryd0cwlggryt7f8xhst0tapaue3fe',
             ssl: true,
             format: winston.format.combine(
-                winston.format.json()
+                winston.format.timestamp(),
+                winston.format.printf(({ level, message, timestamp, stack, ...meta }) => {
+                    // Ensure we send a proper JSON object with all details
+                    return JSON.stringify({
+                        level,
+                        message,
+                        timestamp,
+                        stack,
+                        ...meta
+                    });
+                })
             ),
             level: 'error' // Only send errors to webhook
         })

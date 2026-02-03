@@ -40,7 +40,8 @@ client.interceptors.response.use(
         logger.error('Evolution API error', {
             status: error.response?.status,
             url: error.config?.url,
-            // message: error.message,
+            errorMessage: error.message,
+            errorCode: error.code,
             evolutionError: errorData?.message || errorData?.response?.message || errorData,
             fullResponse: JSON.stringify(errorData) // Force stringify to see everything
         });
