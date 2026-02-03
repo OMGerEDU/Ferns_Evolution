@@ -6,14 +6,10 @@
 }
 
 :80 {
-    # Reverse proxy    # API -> backend
-    handle /api/* {
-        reverse_proxy backend:3002
-    }
-
-    # Admin UI -> frontend
-    handle /admin-new/* {
-        reverse_proxy frontend:5173
+    # Reverse proxy to our backend service
+    reverse_proxy backend:3002 {
+        header_up Host {http.request.host}
+        header_up X-Real-IP {remote_host}
     }
 
     # Enable gzip compression
