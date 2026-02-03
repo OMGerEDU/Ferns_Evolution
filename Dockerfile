@@ -35,9 +35,13 @@ COPY src/ ./src/
 COPY public/ ./public/
 COPY package.json ./
 
+
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
   adduser -S nodejs -u 1001
+
+# Create logs directory and ensure permissions
+RUN mkdir -p logs && chown -R nodejs:nodejs /app
 
 USER nodejs
 
