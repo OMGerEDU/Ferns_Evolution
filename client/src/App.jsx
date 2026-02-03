@@ -21,7 +21,7 @@ function RequireAuth({ children }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
+      <Router basename="/admin-new">
         <Routes>
           <Route path="/login" element={<Login />} />
 
