@@ -64,12 +64,20 @@ router.post('/evolution/:event?', async (req, res) => {
 
                 if (rows.length > 0) {
                     const config = rows[0];
-                    const subscribedEvents = config.events || [];
-                    const subscribedSources = config.sources || []; // ['groups', 'private']
+                    // Ensure valid arrays
+                    const subscribedEvents = typeof config.events === 'string' ? JSON.parse(config.events) : (config.events || []);
+                    const subscribedSources = typeof config.sources === 'string' ? JSON.parse(config.sources) : (config.sources || []);
 
                     // Check Event Type
                     // normalize event name from params or body
                     const currentEvent = event === 'unknown' ? data.event : event;
+
+                    logger.debug(`Evaluating webhook for ${instanceName}`, {
+                        event: currentEvent,
+                        subscribedEvents,
+                        subscribedSources,
+                        config
+                    });
 
                     if (subscribedEvents.includes(currentEvent) || subscribedEvents.includes('all')) {
                         let shouldForward = true;
@@ -77,18 +85,19 @@ router.post('/evolution/:event?', async (req, res) => {
                         // Check Sources (only for messages)
                         if (currentEvent === 'messages.upsert' || currentEvent === 'messages.update') {
                             const isGroup = data.data?.key?.remoteJid?.endsWith('@g.us') || data.data?.key?.remoteJid?.includes('-'); // Basic check
+                            const isPrivate = !isGroup;
 
-                            if (isGroup && !subscribedSources.includes('groups')) shouldForward = false;
-                            if (!isGroup && !subscribedSources.includes('private')) shouldForward = false;
+                            if (isGroup && !subscribedSources.includes('groups')) {
+                                shouldForward = false;
+                                logger.debug(`Skipping: Group message but 'groups' source not enabled`);
+                            }
+                            if (isPrivate && !subscribedSources.includes('private')) {
+                                shouldForward = false;
+                                logger.debug(`Skipping: Private message but 'private' source not enabled`);
+                            }
                         }
 
                         // Check Media
-                        // If not allowed, we might strip it or skip? 
-                        // Requirement says "allow media", implying if false we might not send it or strip it.
-                        // For now, let's assuming forwarding the event but maybe stripping base64 if it's there?
-                        // Evolution API usually sends media as part of message.
-                        // Implementing "Allow Media" as: if false, and message is media, maybe don't forward or strip?
-                        // Let's keep it simple: if media message and allow_media is false, SKIP.
                         if (config.allow_media === false && (data.data?.messageType === 'imageMessage' || data.data?.messageType === 'videoMessage' || data.data?.messageType === 'audioMessage' || data.data?.messageType === 'documentMessage')) {
                             logger.info(`Skipping webhook for ${instanceName}: Media not allowed`, { type: data.data?.messageType });
                             shouldForward = false;
@@ -188,6 +197,8 @@ router.post('/evolution/:event?', async (req, res) => {
                                 .catch(err => logger.error(`Failed to forward webhook to ${targetUrl}`, { error: err.message }));
                         }
                     }
+                } else {
+                    logger.warn(`No active webhook configuration found for instance: ${instanceName}`);
                 }
             } catch (err) {
                 logger.error('Error in webhook forwarding logic', { error: err.message });

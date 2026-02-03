@@ -42,3 +42,6 @@ ALTER TABLE instance_webhooks ADD COLUMN IF NOT EXISTS sources JSONB DEFAULT '[]
 ALTER TABLE instance_webhooks ADD COLUMN IF NOT EXISTS allow_media BOOLEAN DEFAULT FALSE;
 ALTER TABLE instance_webhooks ADD COLUMN IF NOT EXISTS outgoing_url VARCHAR(500);
 ALTER TABLE instance_webhooks ADD COLUMN IF NOT EXISTS track_outgoing BOOLEAN DEFAULT FALSE;
+
+-- Chats table updates
+ALTER TABLE chats ADD COLUMN IF NOT EXISTS unread_count INTEGER DEFAULT 0;
