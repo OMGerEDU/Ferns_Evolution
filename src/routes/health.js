@@ -15,6 +15,14 @@ router.get('/', (req, res) => {
 });
 
 /**
+ * GET /health/debug-error
+ * Trigger a test error
+ */
+router.get('/debug-error', (req, res) => {
+    throw new Error('This is a test error for the Make.com webhook!');
+});
+
+/**
  * GET /health/detailed
  * Full stack health check
  */

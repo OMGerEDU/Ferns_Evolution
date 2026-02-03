@@ -71,7 +71,40 @@ router.post('/:instanceName', async (req, res) => {
             track_outgoing || false
         ];
 
+        const evolution = require('../services/evolution');
+        const appConfig = require('../config');
+
+        // ...
+
         const { rows } = await db.query(query, values);
+
+        // Sync with Evolution API
+        try {
+            // Use internal Docker URL for Evolution API to call back to us
+            // Default to http://evolution_backend:3002 if not set (which fits our docker-compose)
+            const serverUrl = appConfig.serverUrl || 'http://evolution_backend:3002';
+            const webhookUrl = `${serverUrl}/api/webhooks/evolution`;
+
+            logger.info(`Syncing webhook to Evolution API for ${instanceName}`, { webhookUrl });
+
+            // We enable specific events based on what we want to receive
+            // note: "events" from body is for our internal filtering (Relay)
+            // For Evolution API, we want to subscribe to everything we might need
+            const evolutionEvents = [
+                "connection.update",
+                "qrcode.updated",
+                "messages.upsert",
+                "messages.update",
+                "send.message"
+            ];
+
+            await evolution.setWebhook(instanceName, webhookUrl, true, evolutionEvents);
+            logger.info(`Successfully synced webhook for ${instanceName}`);
+        } catch (syncError) {
+            logger.error(`Failed to sync webhook with Evolution API`, { error: syncError.message });
+            // We don't fail the request, just log it, as the DB save was successful
+        }
+
         res.json({ success: true, data: rows[0] });
     } catch (error) {
         logger.error('Error saving webhook config', { error: error.message });

@@ -634,6 +634,54 @@ async function healthCheck() {
     }
 }
 
+
+/**
+ * Find Webhook for instance
+ */
+async function findWebhook(instanceName) {
+    const response = await retryWithBackoff(() =>
+        client.get(`/webhook/find/${instanceName}`)
+    );
+    return response.data;
+}
+
+/**
+ * Set Webhook for instance
+ */
+async function setWebhook(instanceName, webhookUrl, enabled = true, events = null) {
+    const payload = {
+        url: webhookUrl,
+        webhook_by_events: true,
+        webhook_base64: true, // We want base64 for media handling
+        events: events || [
+            "start",
+            "connection.update",
+            "qrcode.updated",
+            "messages.upsert",
+            "messages.update",
+            "messages.delete",
+            "send.message",
+            "contacts.update",
+            "call"
+        ]
+    };
+
+    // If enabled is false, we might want to disable it, but Evolution API 
+    // usually manages this by presence of URL. 
+    // If we want to disable, we might need to delete or set enabled=false if supported.
+    // The v2 endpoint typically just sets it. 
+    // To "disable" effectively we might rely on the backend ignoring it, 
+    // or we can assume this function is only called when enabled matches true.
+
+    // Check if we need to toggle enabled state explicitly if the API supports it
+    payload.enabled = enabled;
+
+    const response = await retryWithBackoff(() =>
+        client.post(`/webhook/set/${instanceName}`, payload)
+    );
+    return response.data;
+}
+
 module.exports = {
     client,
     createInstance,
@@ -672,5 +720,8 @@ module.exports = {
     updateMessage,
     sendPresence,
     getBase64,
-    sendSticker
+    sendSticker,
+    // Webhooks
+    findWebhook,
+    setWebhook
 };

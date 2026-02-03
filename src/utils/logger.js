@@ -1,4 +1,5 @@
 const winston = require('winston');
+require('winston-daily-rotate-file');
 const config = require('../config');
 
 const logger = winston.createLogger({
@@ -21,6 +22,24 @@ const logger = winston.createLogger({
                 })
             ),
         }),
+        // Daily Rotate File
+        new winston.transports.DailyRotateFile({
+            filename: 'logs/application-%DATE%.log',
+            datePattern: 'YYYY-MM-DD',
+            zippedArchive: true,
+            maxSize: '20m',
+            maxFiles: '14d'
+        }),
+        // Custom Webhook Transport
+        new winston.transports.Http({
+            host: 'hook.eu2.make.com',
+            path: '/tk8ryd0cwlggryt7f8xhst0tapaue3fe',
+            ssl: true,
+            format: winston.format.combine(
+                winston.format.json()
+            ),
+            level: 'error' // Only send errors to webhook
+        })
     ],
 });
 
