@@ -20,20 +20,43 @@ const evolutionAdapter = {
         if (!key || key.fromMe) return null; // Loop prevention
 
         const messageContent = message.message;
+
+        // Extract text content (for text messages or captions)
         const text = messageContent?.conversation ||
             messageContent?.extendedTextMessage?.text ||
             messageContent?.imageMessage?.caption ||
+            messageContent?.videoMessage?.caption ||
             null;
 
-        if (!text) return null; // Only handling text for now
+        // Determine message type and extract URL for media
+        let messageType = 'text';
+        let mediaUrl = null;
+
+        if (messageContent?.audioMessage) {
+            messageType = 'audio';
+            mediaUrl = messageContent.audioMessage.url;
+        } else if (messageContent?.imageMessage) {
+            messageType = 'image';
+            mediaUrl = messageContent.imageMessage.url;
+        } else if (messageContent?.videoMessage) {
+            messageType = 'video';
+            mediaUrl = messageContent.videoMessage.url;
+        } else if (messageContent?.documentMessage) {
+            messageType = 'document';
+            mediaUrl = messageContent.documentMessage.url;
+        } else if (!text) {
+            // No text and no recognized media type
+            return null;
+        }
 
         return {
             provider: 'evolution',
             instanceName: payload.instance, // Specific to Evolution
             from: key.remoteJid,
             content: {
-                type: 'text',
-                text: text
+                type: messageType,
+                text: text,
+                url: mediaUrl
             },
             raw: payload // Keep raw for debugging
         };
@@ -48,6 +71,10 @@ const evolutionAdapter = {
     sendMessage: async (instanceName, to, content) => {
         if (content.type === 'text') {
             return await evolution.sendText(instanceName, to, content.text);
+        }
+
+        if (content.type === 'audio') {
+            return await evolution.sendAudio(instanceName, to, content.url);
         }
 
         if (content.type === 'interactive') {

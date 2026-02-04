@@ -250,6 +250,93 @@ async function executeNode(node, event, context) {
                 return true;
             }
 
+            case 'forward_message': {
+                const adapter = adapters[event.provider];
+                if (!adapter) {
+                    logger.warn('Adapter not found for message forwarding', { provider: event.provider });
+                    return false;
+                }
+
+                // Get target number from config (supports variable injection like {{config.targetNumber}})
+                let targetNumber = evaluator.injectVariables(data.to || data.params?.to, context);
+
+                // Format number properly for WhatsApp
+                targetNumber = formatWhatsAppNumber(targetNumber);
+
+                logger.info('Forwarding message', {
+                    from: event.from,
+                    to: targetNumber,
+                    type: event.content?.type,
+                    provider: event.provider
+                });
+
+                // Forward the original message based on type
+                const messageType = event.content?.type || 'text';
+
+                try {
+                    if (messageType === 'audio') {
+                        // Get audio URL from event
+                        const audioUrl = event.content?.url || event.raw?.data?.message?.audioMessage?.url;
+                        if (!audioUrl) {
+                            logger.warn('No audio URL found for forwarding');
+                            return false;
+                        }
+
+                        const evolution = require('../services/evolution');
+                        await evolution.sendAudio(event.instanceName, targetNumber, audioUrl);
+                    } else if (messageType === 'image') {
+                        const imageUrl = event.content?.url || event.raw?.data?.message?.imageMessage?.url;
+                        const caption = event.content?.text || event.raw?.data?.message?.imageMessage?.caption || '';
+
+                        if (!imageUrl) {
+                            logger.warn('No image URL found for forwarding');
+                            return false;
+                        }
+
+                        const evolution = require('../services/evolution');
+                        await evolution.sendMedia(event.instanceName, targetNumber, imageUrl, {
+                            caption,
+                            mediatype: 'image'
+                        });
+                    } else if (messageType === 'video') {
+                        const videoUrl = event.content?.url || event.raw?.data?.message?.videoMessage?.url;
+                        const caption = event.content?.text || event.raw?.data?.message?.videoMessage?.caption || '';
+
+                        if (!videoUrl) {
+                            logger.warn('No video URL found for forwarding');
+                            return false;
+                        }
+
+                        const evolution = require('../services/evolution');
+                        await evolution.sendMedia(event.instanceName, targetNumber, videoUrl, {
+                            caption,
+                            mediatype: 'video'
+                        });
+                    } else if (messageType === 'text') {
+                        await adapter.sendMessage(event.instanceName, targetNumber, {
+                            type: 'text',
+                            text: event.content?.text || 'Forwarded message'
+                        });
+                    } else {
+                        logger.warn(`Unsupported message type for forwarding: ${messageType}`);
+                        return false;
+                    }
+
+                    logger.info('Message forwarded successfully', {
+                        to: targetNumber,
+                        type: messageType
+                    });
+                    return true;
+                } catch (error) {
+                    logger.error('Error forwarding message', {
+                        error: error.message,
+                        type: messageType,
+                        to: targetNumber
+                    });
+                    return false;
+                }
+            }
+
             default:
                 logger.warn(`Unknown node type: ${node.type}`);
                 return true;
@@ -258,6 +345,25 @@ async function executeNode(node, event, context) {
         logger.error(`Node execution failed [${node.type}]`, { error: e.message });
         return false;
     }
+}
+
+/**
+ * Format phone number for WhatsApp
+ * Ensures number has proper @s.whatsapp.net suffix
+ */
+function formatWhatsAppNumber(number) {
+    if (!number) return null;
+
+    // If already formatted with @, return as is
+    if (number.includes('@')) {
+        return number;
+    }
+
+    // Remove all non-digits
+    const cleaned = number.replace(/\D/g, '');
+
+    // Add WhatsApp suffix
+    return `${cleaned}@s.whatsapp.net`;
 }
 
 /**

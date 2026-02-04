@@ -69,6 +69,7 @@ app.use('/api/groups', authMiddleware, require('./routes/groups'));
 app.use('/api/profile', authMiddleware, require('./routes/profile'));
 app.use('/api/tenants', authMiddleware, require('./routes/tenants'));
 app.use('/api/automations', authMiddleware, require('./routes/automations'));
+app.use('/api/automations/builtin', authMiddleware, require('./routes/builtinAutomations'));
 app.use('/api/webhook-config', authMiddleware, require('./routes/webhookConfig'));
 
 // Webhook routes (legacy internal)
