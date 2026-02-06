@@ -54,10 +54,19 @@ export default function InstanceDetails() {
     // but ideally we'd filter by instance if the backend supported it.
     // The requirement says "automations and clickable to move to that automation".
     // We'll fetch all validation rules for 'default' tenant for now.
-    const { data: automations, isLoading: loadingAutomations } = useQuery({
+    const { data: automations, isLoading: loadingAutomations, refetch: refetchAutomations } = useQuery({
         queryKey: ['automations', 'default'],
         queryFn: async () => {
             const res = await api.get('/automations?tenantId=default');
+            return res.data.data || [];
+        }
+    });
+
+    // Fetch Built-in Automations Templates
+    const { data: builtinTemplates, isLoading: loadingBuiltin } = useQuery({
+        queryKey: ['builtin-automations'],
+        queryFn: async () => {
+            const res = await api.get('/automations/builtin');
             return res.data.data || [];
         }
     });
@@ -119,6 +128,60 @@ export default function InstanceDetails() {
     const toggleList = (list, item) => {
         if (list.includes(item)) return list.filter(i => i !== item);
         return [...list, item];
+    };
+
+    // Built-in Automations State
+    const [builtinConfigs, setBuiltinConfigs] = useState({});
+    const [savingBuiltin, setSavingBuiltin] = useState(null);
+
+    // Check if a built-in automation is enabled
+    const isBuiltinEnabled = (templateId) => {
+        return automations?.some(a => a.builtin_template_id === templateId && a.enabled);
+    };
+
+    // Get config for enabled built-in automation
+    const getBuiltinConfig = (templateId) => {
+        const automation = automations?.find(a => a.builtin_template_id === templateId);
+        return automation?.config || {};
+    };
+
+    // Handle toggling built-in automation
+    const handleToggleBuiltin = async (template, enabled) => {
+        try {
+            setSavingBuiltin(template.id);
+            const config = builtinConfigs[template.id] || getBuiltinConfig(template.id) || {};
+
+            if (enabled) {
+                await api.post(`/automations/builtin/${template.id}/enable`, {
+                    tenantId: 'default',
+                    config,
+                    enabled: true
+                });
+                toast.success(`${template.name} enabled`);
+            } else {
+                await api.delete(`/automations/builtin/${template.id}/disable?tenantId=default`);
+                toast.success(`${template.name} disabled`);
+            }
+
+            // Refetch automations to update the list
+            refetchAutomations();
+        } catch (error) {
+            toast.error('Failed to update automation');
+            console.error(error);
+        } finally {
+            setSavingBuiltin(null);
+        }
+    };
+
+    // Update config for a built-in automation
+    const updateBuiltinConfig = (templateId, key, value) => {
+        setBuiltinConfigs(prev => ({
+            ...prev,
+            [templateId]: {
+                ...(prev[templateId] || getBuiltinConfig(templateId) || {}),
+                [key]: value
+            }
+        }));
     };
 
     console.log('[WEBHOOK CONFIG RENDER] localConfig:', localConfig);
@@ -345,12 +408,125 @@ export default function InstanceDetails() {
                     </div>
                 </div>
 
-                {/* Automations List */}
+                {/* Built-in Automations Card */}
                 <div className="bg-card border rounded-xl p-6 shadow-sm md:col-span-2 space-y-4">
                     <div className="flex justify-between items-center">
                         <h3 className="font-semibold text-lg flex items-center">
                             <Zap className="mr-2 h-5 w-5 text-yellow-500" />
-                            Automations
+                            Built-in Automations
+                        </h3>
+                        <Badge variant="outline" className="text-xs">Quick Start</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Pre-made automations ready to use</p>
+                    <Separator />
+
+                    {loadingBuiltin ? (
+                        <div className="text-center py-8 text-muted-foreground">Loading...</div>
+                    ) : builtinTemplates?.length === 0 ? (
+                        <div className="text-center py-10 border border-dashed rounded-lg">
+                            <p className="text-muted-foreground">No built-in automations available.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {builtinTemplates?.map(template => {
+                                const enabled = isBuiltinEnabled(template.id);
+                                const config = builtinConfigs[template.id] || getBuiltinConfig(template.id) || {};
+                                const isSaving = savingBuiltin === template.id;
+
+                                return (
+                                    <div
+                                        key={template.id}
+                                        className={cn(
+                                            "p-4 rounded-lg border transition-all",
+                                            enabled ? "bg-yellow-50 border-yellow-200" : "bg-muted/20"
+                                        )}
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <div className="pt-1">
+                                                <Checkbox
+                                                    id={`builtin-${template.id}`}
+                                                    checked={enabled}
+                                                    onCheckedChange={(checked) => handleToggleBuiltin(template, checked)}
+                                                    disabled={isSaving}
+                                                />
+                                            </div>
+                                            <div className="flex-1 space-y-3">
+                                                <div className="flex items-start justify-between">
+                                                    <label
+                                                        htmlFor={`builtin-${template.id}`}
+                                                        className="cursor-pointer flex items-center gap-2"
+                                                    >
+                                                        <span className="text-xl">{template.icon}</span>
+                                                        <div>
+                                                            <div className="font-medium">{template.name}</div>
+                                                            <div className="text-xs text-muted-foreground mt-0.5">
+                                                                {template.description}
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                    <Badge
+                                                        variant={enabled ? "default" : "secondary"}
+                                                        className={cn(
+                                                            "ml-2",
+                                                            enabled && "bg-yellow-500 hover:bg-yellow-600"
+                                                        )}
+                                                    >
+                                                        {isSaving ? 'Saving...' : enabled ? 'Active' : 'Available'}
+                                                    </Badge>
+                                                </div>
+
+                                                {/* Configuration Inputs */}
+                                                {template.config_schema?.properties && (
+                                                    <div className="space-y-2 pl-7">
+                                                        {Object.entries(template.config_schema.properties).map(([key, field]) => (
+                                                            <div key={key} className="space-y-1">
+                                                                <label className="text-xs font-medium text-muted-foreground">
+                                                                    {field.label || key}
+                                                                </label>
+                                                                <Input
+                                                                    placeholder={field.placeholder}
+                                                                    value={config[key] || ''}
+                                                                    onChange={(e) => {
+                                                                        updateBuiltinConfig(template.id, key, e.target.value);
+                                                                        // Auto-save if already enabled
+                                                                        if (enabled && e.target.value) {
+                                                                            const timeoutId = setTimeout(() => {
+                                                                                handleToggleBuiltin(template, true);
+                                                                            }, 1000);
+                                                                            // Store timeout to clear on unmount
+                                                                            return () => clearTimeout(timeoutId);
+                                                                        }
+                                                                    }}
+                                                                    disabled={isSaving}
+                                                                    className="h-8 text-sm"
+                                                                />
+                                                                {field.description && (
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        {field.description}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Regular Automations Section */}
+            <div className="grid grid-cols-1 gap-6">
+                {/* Automations List */}
+                <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
+                    <div className="flex justify-between items-center">
+                        <h3 className="font-semibold text-lg flex items-center">
+                            <Zap className="mr-2 h-5 w-5 text-blue-500" />
+                            Custom Automations
                         </h3>
                         <Button size="sm" onClick={() => navigate('/automations')}>
                             <Plus className="mr-2 h-4 w-4" /> New Rule
@@ -360,14 +536,14 @@ export default function InstanceDetails() {
 
                     {loadingAutomations ? (
                         <div className="text-center py-8 text-muted-foreground">Loading rules...</div>
-                    ) : automations?.length === 0 ? (
+                    ) : automations?.filter(a => !a.is_builtin).length === 0 ? (
                         <div className="text-center py-10 border border-dashed rounded-lg">
-                            <p className="text-muted-foreground mb-2">No automations found.</p>
+                            <p className="text-muted-foreground mb-2">No custom automations found.</p>
                             <Button variant="link" onClick={() => navigate('/automations')}>Create your first rule</Button>
                         </div>
                     ) : (
                         <div className="grid gap-3">
-                            {automations.map(rule => (
+                            {automations?.filter(a => !a.is_builtin).map(rule => (
                                 <div
                                     key={rule.id}
                                     className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition cursor-pointer"
@@ -376,7 +552,7 @@ export default function InstanceDetails() {
                                     <div className="flex items-center gap-3">
                                         <div className={cn(
                                             "p-2 rounded-md",
-                                            rule.enabled ? "bg-yellow-100 text-yellow-600" : "bg-gray-100 text-gray-400"
+                                            rule.enabled ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-400"
                                         )}>
                                             <Zap className="h-4 w-4" />
                                         </div>

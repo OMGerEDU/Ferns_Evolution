@@ -96,6 +96,23 @@ function evaluateTrigger(trigger, event) {
         if (!event.content.text.toLowerCase().includes(trigger.text_contains.toLowerCase())) return false;
     }
 
+    // Support for built-in automations
+    // Multi-message-type support (e.g., [image, video])
+    if (trigger.message_types && Array.isArray(trigger.message_types)) {
+        if (!trigger.message_types.includes(event.content.type)) return false;
+    }
+
+    // Group filtering
+    if (trigger.is_group !== undefined) {
+        const isGroup = event.from.includes('@g.us');
+        if (trigger.is_group !== isGroup) return false;
+    }
+
+    // All messages trigger (vacation, receipt confirmation)
+    if (trigger.all_messages) {
+        return true;
+    }
+
     return true;
 }
 
@@ -337,6 +354,188 @@ async function executeNode(node, event, context) {
                 }
             }
 
+            case 'auto_reply': {
+                // Send automatic text response
+                const adapter = adapters[event.provider];
+                if (!adapter) {
+                    logger.warn('Adapter not found for auto-reply', { provider: event.provider });
+                    return false;
+                }
+
+                const message = evaluator.injectVariables(data.message || data.params?.message, context);
+
+                await adapter.sendMessage(event.instanceName, event.from, {
+                    type: 'text',
+                    text: message
+                });
+
+                logger.info('Auto-reply sent', { to: event.from, message: message.substring(0, 50) });
+                return true;
+            }
+
+            case 'auto_reply_keyword': {
+                // Reply based on keyword match
+                const adapter = adapters[event.provider];
+                if (!adapter) return false;
+
+                const keywords = data.keywords || data.params?.keywords || [];
+                const responses = data.responses || data.params?.responses || [];
+                const messageText = event.content?.text?.toLowerCase() || '';
+
+                // Find first matching keyword
+                for (let i = 0; i < keywords.length; i++) {
+                    const keyword = evaluator.injectVariables(keywords[i], context);
+                    if (keyword && messageText.includes(keyword.toLowerCase())) {
+                        const response = evaluator.injectVariables(responses[i], context);
+                        if (response) {
+                            await adapter.sendMessage(event.instanceName, event.from, {
+                                type: 'text',
+                                text: response
+                            });
+                            logger.info('Keyword auto-reply sent', { keyword, response: response.substring(0, 50) });
+                            return true;
+                        }
+                    }
+                }
+
+                return false; // No keyword matched
+            }
+
+            case 'check_time': {
+                // Check if current time is within business hours
+                const { businessStart, businessEnd, timezone = 'UTC', invert = false } = data.params || {};
+                const start = evaluator.injectVariables(businessStart, context);
+                const end = evaluator.injectVariables(businessEnd, context);
+
+                if (!start || !end) {
+                    logger.warn('check_time: Missing business hours configuration');
+                    return false;
+                }
+
+                try {
+                    const now = new Date();
+                    const currentTime = now.toLocaleTimeString('en-US', {
+                        timeZone: timezone,
+                        hour12: false,
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    // Simple string comparison (works for HH:MM format)
+                    const isWithinHours = currentTime >= start && currentTime <= end;
+
+                    // Apply invert if needed (for "outside business hours" logic)
+                    const result = invert ? !isWithinHours : isWithinHours;
+
+                    logger.debug('Business hours check', { currentTime, start, end, isWithinHours, invert, result });
+                    return result;
+                } catch (error) {
+                    logger.error('Error checking business hours', { error: error.message });
+                    return false;
+                }
+            }
+
+            case 'check_keyword': {
+                // Check if message contains specific keywords
+                const keywords = data.keywords || data.params?.keywords || [];
+                const messageText = event.content?.text?.toLowerCase() || '';
+
+                const matched = keywords.some(kw => {
+                    const keyword = evaluator.injectVariables(kw, context);
+                    return keyword && messageText.includes(keyword.toLowerCase());
+                });
+
+                logger.debug('Keyword check', { keywords, matched });
+                return matched;
+            }
+
+            case 'check_first_contact': {
+                // Check if this is the first message from this contact
+                const contactTracker = require('./contactTracker');
+
+                try {
+                    const isFirst = await contactTracker.isFirstContact(
+                        event.from,
+                        event.instanceName,
+                        context.tenantId || 'default'
+                    );
+
+                    logger.debug('First contact check', { contact: event.from, isFirst });
+                    return isFirst;
+                } catch (error) {
+                    logger.error('Error checking first contact', { error: error.message });
+                    return false;
+                }
+            }
+
+            case 'check_saved_contact': {
+                // Check if contact is saved in phone's contact list
+                const contactTracker = require('./contactTracker');
+                const { invert = false } = data.params || {};
+
+                try {
+                    const isSaved = await contactTracker.isContactSaved(
+                        event.from,
+                        event.instanceName
+                    );
+
+                    // Apply invert if needed (for "unknown contact" logic)
+                    const result = invert ? !isSaved : isSaved;
+
+                    logger.debug('Saved contact check', { contact: event.from, isSaved, invert, result });
+                    return result;
+                } catch (error) {
+                    logger.error('Error checking saved contact', { error: error.message });
+                    return false;
+                }
+            }
+
+            case 'filter_unknown': {
+                // Filter messages from unknown/unsaved contacts
+                const action = data.action || data.params?.action || 'ignore';
+                const message = data.message || data.params?.message;
+
+                if (action === 'reply' && message) {
+                    const adapter = adapters[event.provider];
+                    if (adapter) {
+                        const replyText = evaluator.injectVariables(message, context);
+                        await adapter.sendMessage(event.instanceName, event.from, {
+                            type: 'text',
+                            text: replyText
+                        });
+                        logger.info('Unknown contact auto-reply sent', { to: event.from });
+                    }
+                }
+
+                // Always return true to stop further processing
+                logger.debug('Unknown contact filtered', { contact: event.from, action });
+                return true;
+            }
+
+            case 'ignore_message': {
+                // Simply ignore the message (stop processing)
+                logger.info('Message ignored by automation', { from: event.from });
+                return true;
+            }
+
+            case 'check_vip': {
+                // Check if message is from VIP contact
+                const vipNumbers = data.vipNumbers || data.params?.vipNumbers || context.config?.vipNumbers || '';
+                const vipList = vipNumbers.split(',').map(n => n.trim()).filter(n => n);
+
+                // Extract phone number from JID format
+                const senderNumber = event.from.split('@')[0];
+
+                const isVip = vipList.some(vip => {
+                    const cleanVip = vip.replace(/[^0-9]/g, '');
+                    const cleanSender = senderNumber.replace(/[^0-9]/g, '');
+                    return cleanSender.includes(cleanVip) || cleanVip.includes(cleanSender);
+                });
+
+                logger.debug('VIP check', { sender: senderNumber, vipList, isVip });
+                return isVip;
+            }
+
             default:
                 logger.warn(`Unknown node type: ${node.type}`);
                 return true;
@@ -372,7 +571,19 @@ function formatWhatsAppNumber(number) {
 async function executeLinearActions(actions, event, context) {
     for (const action of actions) {
         // Map simple action to a temporary node
-        await executeNode({ type: action.type, data: action.params || action }, event, context);
+        const node = { type: action.type, data: action.params || action };
+
+        // Handle conditional check nodes - if they return false, stop processing
+        if (action.type && action.type.startsWith('check_')) {
+            const result = await executeNode(node, event, context);
+            if (!result) {
+                logger.debug(`Conditional check failed: ${action.type}, stopping automation`);
+                return; // Stop processing
+            }
+            continue; // Check passed, continue
+        }
+
+        await executeNode(node, event, context);
     }
 }
 
