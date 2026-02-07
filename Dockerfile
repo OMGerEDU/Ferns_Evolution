@@ -24,7 +24,7 @@ WORKDIR /app
 
 # Install curl for health checks
 # Install curl for health checks and ffmpeg for media processing
-RUN apk add --no-cache curl ffmpeg
+RUN apk update && apk add --no-cache curl ffmpeg
 
 # Copy from builder
 COPY --from=builder /app/node_modules ./node_modules
