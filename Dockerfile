@@ -26,6 +26,7 @@ WORKDIR /app
 # Install curl for health checks and ffmpeg for media processing
 #RUN apk update && apk add --no-cache curl
 #RUN apk update && apk add --no-cache ffmpeg
+RUN apk update && apk add --no-cache wget
 RUN apk update && apk add --no-cache ffmpeg
 
 # Copy from builder
@@ -52,7 +53,7 @@ EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/health || exit 1
+  CMD wget -q --spider http://localhost:3000/health || exit 1
 
 # Start application
 CMD ["node", "src/index.js"]
