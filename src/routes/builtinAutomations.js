@@ -145,8 +145,8 @@ router.post('/:id/enable', async (req, res) => {
         const params = [
             tenantId,
             template.name,
-            template.trigger,
-            template.actions,
+            typeof template.trigger === 'string' ? template.trigger : JSON.stringify(template.trigger),
+            typeof template.actions === 'string' ? template.actions : JSON.stringify(template.actions),
             enabled,
             id,
             JSON.stringify(config)
