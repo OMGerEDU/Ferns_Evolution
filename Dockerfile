@@ -23,7 +23,9 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Install curl for health checks and ffmpeg for media processing
-RUN apk update && apk add --no-cache curl ffmpeg
+# Using retry logic and mirror fallback for network stability
+RUN apk update --no-cache || apk update --repository=http://dl-cdn.alpinelinux.org/alpine/v3.18/main && \
+  apk add --no-cache curl ffmpeg || apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/v3.18/main curl ffmpeg
 
 # Copy from builder
 COPY --from=builder /app/node_modules ./node_modules
