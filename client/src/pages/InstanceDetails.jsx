@@ -67,7 +67,8 @@ export default function InstanceDetails() {
         queryKey: ['builtin-automations'],
         queryFn: async () => {
             const res = await api.get('/automations/builtin');
-            return res.data.data || [];
+            console.log('[BUILTIN DEBUG] Response:', res);
+            return res.data || [];
         }
     });
 

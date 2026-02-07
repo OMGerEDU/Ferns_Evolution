@@ -169,11 +169,6 @@ services:
 networks:
   evolution_net:
     driver: bridge
-    enable_ipv6: true
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
-        - subnet: 2001:db8:1::/64
 
 volumes:
   postgres_data:
