@@ -61,7 +61,11 @@ services:
       EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
       WEBHOOK_TARGET_URL: ${WEBHOOK_TARGET_URL}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      DATABASE_URL: ${DATABASE_URL}
       POSTGRES_HOST: postgres
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-evolution_password}
+      POSTGRES_DB: evolution
       REDIS_HOST: redis
     depends_on:
       evolution_api:
