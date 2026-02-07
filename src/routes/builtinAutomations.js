@@ -19,8 +19,17 @@ router.get('/', async (req, res) => {
             count: rows.length
         });
     } catch (error) {
-        logger.error('Error fetching built-in automations', { error: error.message });
-        res.status(500).json({ success: false, error: 'Internal Server Error' });
+        logger.error('Error fetching built-in automations', {
+            error: error.message,
+            stack: error.stack,
+            code: error.code
+        });
+        res.status(500).json({
+            success: false,
+            error: 'Internal Server Error',
+            details: error.message,
+            code: error.code
+        });
     }
 });
 
@@ -46,8 +55,15 @@ router.get('/:id', async (req, res) => {
 
         res.json({ success: true, data: rows[0] });
     } catch (error) {
-        logger.error('Error fetching built-in automation', { error: error.message });
-        res.status(500).json({ success: false, error: 'Internal Server Error' });
+        logger.error('Error fetching built-in automation', {
+            error: error.message,
+            stack: error.stack
+        });
+        res.status(500).json({
+            success: false,
+            error: 'Internal Server Error',
+            details: error.message
+        });
     }
 });
 
