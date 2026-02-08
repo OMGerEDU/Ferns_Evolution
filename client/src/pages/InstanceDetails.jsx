@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
-import { ArrowLeft, Smartphone, Zap, Plus, Settings, MessageSquare, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Smartphone, Zap, Plus, Settings, MessageSquare, AlertTriangle, History, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -72,6 +72,16 @@ export default function InstanceDetails() {
             console.log('[BUILTIN DEBUG] Response:', res);
             return res.data || [];
         }
+    });
+
+    // Fetch Automation Logs
+    const { data: automationLogs, isLoading: loadingLogs } = useQuery({
+        queryKey: ['automation-logs', instanceName],
+        queryFn: async () => {
+            const res = await api.get(`/automations/logs/${instanceName}?limit=50`);
+            return res.data || [];
+        },
+        refetchInterval: 5000 // Auto-refresh every 5 seconds
     });
 
     const isConnected = instance?.instance?.state === 'open' || instance?.state === 'open';
@@ -575,6 +585,92 @@ export default function InstanceDetails() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Automation History */}
+                <div className="mt-8 mb-8">
+                    <div className="flex items-center gap-2 mb-4">
+                        <History className="w-5 h-5 text-blue-600" />
+                        <h2 className="text-xl font-semibold">Automation History</h2>
+                        <Badge variant="outline" className="ml-2">
+                            {automationLogs?.length || 0} recent
+                        </Badge>
+                    </div>
+
+                    {loadingLogs ? (
+                        <div className="text-center py-8 text-gray-500">Loading history...</div>
+                    ) : automationLogs?.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                            <AlertTriangle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                            <p>No automation activity yet</p>
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-lg border overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-gray-50 border-b">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Automation</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">From</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-1/4">Message</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {automationLogs?.map((log, idx) => (
+                                            <tr key={log.id || idx} className="hover:bg-gray-50">
+                                                <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                    <div className="flex items-center gap-1">
+                                                        <Clock className="w-3 h-3" />
+                                                        {new Date(log.created_at).toLocaleString('en-GB', {
+                                                            month: '2-digit',
+                                                            day: '2-digit',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm font-medium">
+                                                    {log.automation_name}
+                                                    <div className="text-xs text-gray-500">{log.trigger_type}</div>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                    {log.message_from?.replace('@s.whatsapp.net', '') || '—'}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                    <div className="truncate max-w-xs" title={log.message_text}>
+                                                        {log.message_text || '—'}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm">
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {log.action_taken || 'N/A'}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm">
+                                                    {log.status === 'success' ? (
+                                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                                                            Success
+                                                        </Badge>
+                                                    ) : log.status === 'error' ? (
+                                                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200" title={log.error_message}>
+                                                            <XCircle className="w-3 h-3 mr-1" />
+                                                            Error
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="secondary">{log.status}</Badge>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )}
                 </div>

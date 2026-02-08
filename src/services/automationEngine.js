@@ -42,13 +42,39 @@ const automationEngine = {
 
                 logger.info(`Rule matched: ${rule.name} for ${event.from}`);
 
-                // 3. Graph Execution
-                // rule.actions can now be a Graph object: { nodes: [], edges: [] }
-                // For legacy, it might be an array of simple actions.
-                if (Array.isArray(rule.actions)) {
-                    await executeLinearActions(rule.actions, event, context);
-                } else if (rule.actions && rule.actions.nodes) {
-                    await executeGraphFlow(rule.actions, event, context);
+                // Log automation execution
+                const logData = {
+                    tenant_id: tenantId,
+                    instance_name: event.instanceName || 'unknown',
+                    automation_id: rule.id,
+                    automation_name: rule.name,
+                    trigger_type: trigger.type || 'all_messages',
+                    message_from: event.from,
+                    message_text: event.content?.text || (event.content?.type || 'media'),
+                    status: 'running'
+                };
+
+                try {
+                    // 3. Graph Execution
+                    // rule.actions can now be a Graph object: { nodes: [], edges: [] }
+                    // For legacy, it might be an array of simple actions.
+                    if (Array.isArray(rule.actions)) {
+                        await executeLinearActions(rule.actions, event, context);
+                        logData.action_taken = rule.actions[0]?.action || 'unknown';
+                    } else if (rule.actions && rule.actions.nodes) {
+                        await executeGraphFlow(rule.actions, event, context);
+                        logData.action_taken = 'graph_flow';
+                    }
+
+                    // Log success
+                    logData.status = 'success';
+                    await logAutomationExecution(logData);
+                } catch (error) {
+                    // Log error
+                    logData.status = 'error';
+                    logData.error_message = error.message;
+                    await logAutomationExecution(logData);
+                    logger.error(`Automation execution failed: ${rule.name}`, { error: error.message });
                 }
             }
         } catch (error) {
@@ -587,4 +613,33 @@ async function executeLinearActions(actions, event, context) {
     }
 }
 
+/**
+ * Log automation execution to database
+ */
+async function logAutomationExecution(logData) {
+    try {
+        await db.query(
+            `INSERT INTO automation_logs 
+            (tenant_id, instance_name, automation_id, automation_name, trigger_type, 
+             message_from, message_text, action_taken, status, error_message)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+            [
+                logData.tenant_id,
+                logData.instance_name,
+                logData.automation_id,
+                logData.automation_name,
+                logData.trigger_type,
+                logData.message_from,
+                logData.message_text?.substring(0, 500), // Limit text length
+                logData.action_taken,
+                logData.status,
+                logData.error_message || null
+            ]
+        );
+    } catch (error) {
+        logger.error('Failed to log automation execution', { error: error.message });
+    }
+}
+
 module.exports = automationEngine;
+

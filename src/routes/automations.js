@@ -196,4 +196,38 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/automations/logs/:instanceName
+ * Get automation execution logs for an instance
+ */
+router.get('/logs/:instanceName', async (req, res) => {
+    try {
+        const { instanceName } = req.params;
+        const limit = parseInt(req.query.limit) || 50;
+
+        const { rows } = await db.query(
+            `SELECT 
+                id,
+                automation_name,
+                trigger_type,
+                message_from,
+                message_text,
+                action_taken,
+                status,
+                error_message,
+                created_at
+            FROM automation_logs
+            WHERE instance_name = $1
+            ORDER BY created_at DESC
+            LIMIT $2`,
+            [instanceName, limit]
+        );
+
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        logger.error('Error fetching automation logs', { error: error.message });
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
