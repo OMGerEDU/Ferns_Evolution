@@ -214,7 +214,13 @@ router.post('/evolution/:event?', async (req, res) => {
 
         // 3. AUTOMATION ENGINE PROCESSING
         // Process message through automation rules (built-in + custom)
-        if (instanceName && event === 'messages.upsert') {
+        // Normalize event name (messages-upsert -> messages.upsert)
+        let automationEvent = event === 'unknown' ? data.event : event;
+        if (automationEvent && automationEvent.includes('-')) {
+            automationEvent = automationEvent.replace(/-/g, '.');
+        }
+
+        if (instanceName && automationEvent === 'messages.upsert') {
             try {
                 const automationEngine = require('../services/automationEngine');
                 const evolutionAdapter = require('../adapters/evolutionAdapter');
