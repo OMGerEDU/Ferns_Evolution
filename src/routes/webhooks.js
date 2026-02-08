@@ -212,6 +212,41 @@ router.post('/evolution/:event?', async (req, res) => {
             }
         }
 
+        // 3. AUTOMATION ENGINE PROCESSING
+        // Process message through automation rules (built-in + custom)
+        const instanceName = data.instance?.instanceName || data.instance;
+        if (instanceName && event === 'messages.upsert') {
+            try {
+                const automationEngine = require('../services/automationEngine');
+                const evolutionAdapter = require('../adapters/evolutionAdapter');
+
+                // Normalize the webhook data to automation engine format
+                const messageEvent = evolutionAdapter.normalize(data);
+
+                if (messageEvent) {
+                    logger.debug('Triggering automation engine', {
+                        from: messageEvent.from,
+                        instanceName
+                    });
+
+                    // Process automations for default tenant (async, non-blocking)
+                    // TODO: Support multi-tenancy by mapping instanceName to tenantId
+                    const { rows: tenants } = await db.query('SELECT id FROM tenants LIMIT 1');
+                    const tenantId = tenants.length > 0 ? tenants[0].id : null;
+
+                    if (tenantId) {
+                        automationEngine.processEvent(messageEvent, tenantId).catch(err => {
+                            logger.error('Error processing automations', { error: err.message });
+                        });
+                    } else {
+                        logger.warn('No tenant found for automation processing');
+                    }
+                }
+            } catch (err) {
+                logger.error('Error in automation engine integration', { error: err.message });
+            }
+        }
+
         // Return 200 OK immediately to acknowledge receipt
         res.status(200).json({ success: true });
     } catch (error) {

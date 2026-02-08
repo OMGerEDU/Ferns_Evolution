@@ -443,7 +443,7 @@ export default function InstanceDetails() {
                                         key={template.id}
                                         className={cn(
                                             "p-4 rounded-lg border transition-all",
-                                            enabled ? "bg-yellow-50 border-yellow-200" : "bg-muted/20"
+                                            enabled ? "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800" : "bg-muted/20"
                                         )}
                                     >
                                         <div className="flex items-start gap-3">
@@ -473,7 +473,7 @@ export default function InstanceDetails() {
                                                         variant={enabled ? "default" : "secondary"}
                                                         className={cn(
                                                             "ml-2",
-                                                            enabled && "bg-yellow-500 hover:bg-yellow-600"
+                                                            enabled && "bg-green-600 hover:bg-green-700 text-white"
                                                         )}
                                                     >
                                                         {isSaving ? 'Saving...' : enabled ? 'Active' : 'Available'}
