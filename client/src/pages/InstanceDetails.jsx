@@ -58,7 +58,9 @@ export default function InstanceDetails() {
         queryKey: ['automations', 'default'],
         queryFn: async () => {
             const res = await api.get('/automations?tenantId=default');
-            return res.data.data || [];
+            console.log('[AUTOMATIONS DEBUG] Response:', res);
+            console.log('[AUTOMATIONS DEBUG] Data array:', res.data);
+            return res.data || [];
         }
     });
 
@@ -137,7 +139,9 @@ export default function InstanceDetails() {
 
     // Check if a built-in automation is enabled
     const isBuiltinEnabled = (templateId) => {
-        return automations?.some(a => a.builtin_template_id === templateId && a.enabled);
+        const result = automations?.some(a => a.builtin_template_id === templateId && a.enabled);
+        console.log(`[BUILTIN CHECK] ${templateId}:`, result, 'automations:', automations);
+        return result;
     };
 
     // Get config for enabled built-in automation

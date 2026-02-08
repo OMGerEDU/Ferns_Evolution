@@ -14,3 +14,5 @@ RETURNING *;
 
 -- Show the created tenant UUID (you'll need this for API calls)
 SELECT id, name FROM tenants ORDER BY created_at DESC LIMIT 1;
+
+
