@@ -214,7 +214,6 @@ router.post('/evolution/:event?', async (req, res) => {
 
         // 3. AUTOMATION ENGINE PROCESSING
         // Process message through automation rules (built-in + custom)
-        const instanceName = data.instance?.instanceName || data.instance;
         if (instanceName && event === 'messages.upsert') {
             try {
                 const automationEngine = require('../services/automationEngine');
