@@ -5,6 +5,7 @@ const { pool } = require('../db');
 async function handlePersonalCommand(command, args, message, instanceName) {
     logger.info(`[PersonalCommand] Executing ${command} for ${instanceName}`);
     const userId = message.sender_jid || message.participant || message.remoteJid;
+    logger.info(`[PersonalCommand] Helper debug: sender_jid=${message.sender_jid}, participant=${message.participant}, remoteJid=${message.remoteJid} -> userId=${userId}`);
 
     switch (command) {
         case 'note':

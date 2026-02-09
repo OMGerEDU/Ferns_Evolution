@@ -259,10 +259,8 @@ async function sendContact(instanceName, number, contact) {
  */
 async function sendReaction(instanceName, messageKey, reaction) {
     const payload = {
-        reactionMessage: {
-            key: messageKey,
-            reaction: reaction,
-        },
+        key: messageKey,
+        reaction: reaction,
     };
 
     const response = await retryWithBackoff(() =>
