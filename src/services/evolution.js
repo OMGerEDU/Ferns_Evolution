@@ -157,7 +157,7 @@ async function logout(instanceName) {
  */
 async function restart(instanceName) {
     const response = await retryWithBackoff(() =>
-        client.put(`/instance/restart/${instanceName}`, {}, { customContext: { functionName: 'restart' } })
+        client.post(`/instance/restart/${instanceName}`, {}, { customContext: { functionName: 'restart' } })
     );
 
     return response.data;
