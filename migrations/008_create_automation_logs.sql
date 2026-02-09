@@ -3,7 +3,7 @@
 
 CREATE TABLE IF NOT EXISTS automation_logs (
   id SERIAL PRIMARY KEY,
-  tenant_id INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
   instance_name VARCHAR(255) NOT NULL,
   automation_id INTEGER REFERENCES automations(id) ON DELETE SET NULL,
   automation_name VARCHAR(255) NOT NULL,
