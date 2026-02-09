@@ -28,17 +28,18 @@ const automationEngine = {
                 [tenantId]
             );
 
-            // 2. Initial Context
-            const context = {
-                ...event,
-                sender_name: event.senderName || 'User',
-                now: new Date().toISOString()
-            };
-
             for (const rule of rules) {
                 // Compatibility layer: Handle both legacy triggers and new graph structure
                 const trigger = rule.trigger;
                 if (!evaluateTrigger(trigger, event)) continue;
+
+                // 2. Initial Context (per rule, includes config)
+                const context = {
+                    ...event,
+                    sender_name: event.senderName || 'User',
+                    now: new Date().toISOString(),
+                    config: rule.config || {}
+                };
 
                 logger.info(`Rule matched: ${rule.name} for ${event.from}`);
 
@@ -642,4 +643,3 @@ async function logAutomationExecution(logData) {
 }
 
 module.exports = automationEngine;
-
