@@ -323,7 +323,8 @@ router.post('/evolution/:event?', async (req, res) => {
         // Return 200 OK immediately to acknowledge receipt
         res.status(200).json({ success: true });
     } catch (error) {
-        logger.error('Error handling webhook', { error: error.message });
+        const safeError = error.message || 'Unknown Error';
+        logger.error('Error handling webhook', { error: safeError });
         res.status(500).json({ success: false, error: 'Internal Server Error' });
     }
 });

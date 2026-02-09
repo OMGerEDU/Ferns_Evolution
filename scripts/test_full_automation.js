@@ -12,7 +12,7 @@ const axios = require('axios');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const INSTANCE = process.argv[2] || 'Omer 09022026';
+const INSTANCE = process.argv.slice(2).join(' ') || 'Omer 09022026';
 const TEST_USER_JID = '972545661640@s.whatsapp.net'; // REAL USER NUMBER
 const BASE_URL = 'https://evolution.omger.cloud';
 const API_KEY = process.env.API_KEY || '54yWPufPt9y2Wp9QUap';
