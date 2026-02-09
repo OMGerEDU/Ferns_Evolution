@@ -1,23 +1,30 @@
-# Clarification Questions: Automation Improvements
+# Clarification: "Micro-Automations" (Small & Helpful)
 
-To provide the best roadmap, I need to understand your priorities for the "Existing Models" and functionality:
+You asked for **small, helpful tools** that don't need external services. Here are 4 "Module Packs" we can build directly into your EvolutionBackend.
 
-### 1. Logic Complexity
-- Do you want support for **conditional branching** (e.g., IF user says "Price" → Action A, ELSE → Action B)?
-- Should we implement **Waiting/Delay** nodes (e.g., "Wait 5 minutes before replying")?
+### Pack 1: The "Media Wizard" 🎨
+**Focus:** Fun & Daily Utility
+*   **!sticker**: Reply to any image/video to instantly get a sticker back.
+*   **!toimg**: Reply to a sticker to get the image back.
+*   **!mp3**: Reply to a video to extract just the audio.
 
-### 2. AI & Inteligence
-- Are you looking for **native AI integration** (e.g., a node where you just paste an OpenAI API Key and the bot "chats")?
-- Would **Keyword Regex** or **Intent Matching** be more useful than the current "Text Contains" logic?
+### Pack 2: The "Admin Power Tools" ⚡
+**Focus:** Managing Groups & Troubleshooting
+*   **!everyone**: Tag all members in a group (hidden mention) for important alerts.
+*   **!purge [N]**: Delete the last N messages in a chat (great for cleanup).
+*   **!id**: Reply to a message to get its raw `messageId` and `remoteJid` (essential for debugging automations).
 
-### 3. Data & Variables
-- Should the bot be able to **store information** from the user? (e.g., Ask "What is your email?" → Save to a variable → Use in a later webhook).
+### Pack 3: The "Personal Assistant" 🧠
+**Focus:** Productivity for You
+*   **!note [text]**: Saves text to a personal database table.
+*   **!remind [10m] [text]**: Simple internal timer (using Node.js `setTimeout`).
+*   **!me**: Returns your own user info JSON.
 
-### 4. Advanced WhatsApp Features
-- The Evolution API supports **Buttons, Lists, and Templates**. Should we add specialized nodes for these interactive messages?
+### Pack 4: The "Privacy Guard" 🛡️
+**Focus:** Safety
+*   **!viewonce**: Resend a ViewOnce message as normal media (to keep a copy).
+*   **!profile [user]**: Get full profile picture URL of a user.
 
-### 5. Multi-Step Conversational State
-- Currently, the engine handles one-off matches. Do you want **stateful conversations** (where the user can "step through" a flow)?
-
----
-*Please indicate which of these are High, Medium, or Low priority for you.*
+## Decision Time
+Which **Pack** would be most immediately useful to you?
+(We can build all of them eventually, but let's pick one to start perfect).

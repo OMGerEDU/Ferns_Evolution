@@ -163,6 +163,61 @@ router.post('/evolution/:event?', async (req, res) => {
                                     messageType = 'document';
                                 }
 
+                                // Extract Quoted Message Info
+                                let quotedMessage = null;
+                                const contextInfo = messageContent.extendedTextMessage?.contextInfo ||
+                                    messageContent.imageMessage?.contextInfo ||
+                                    messageContent.videoMessage?.contextInfo;
+
+                                if (contextInfo && contextInfo.quotedMessage) {
+                                    const qMsg = contextInfo.quotedMessage;
+                                    const qKey = {
+                                        id: contextInfo.stanzaId,
+                                        remoteJid: contextInfo.remoteJid || remoteJid,
+                                        participant: contextInfo.participant
+                                    };
+
+                                    // Determine type of quoted message
+                                    let qType = 'unknown';
+                                    let qText = '';
+                                    let qMediaUrl = null;
+
+                                    if (qMsg.conversation) {
+                                        qType = 'text';
+                                        qText = qMsg.conversation;
+                                    } else if (qMsg.extendedTextMessage) {
+                                        qType = 'text';
+                                        qText = qMsg.extendedTextMessage.text;
+                                    } else if (qMsg.imageMessage) {
+                                        qType = 'image';
+                                        qText = qMsg.imageMessage.caption;
+                                        qMediaUrl = qMsg.imageMessage.url;
+                                    } else if (qMsg.videoMessage) {
+                                        qType = 'video';
+                                        qText = qMsg.videoMessage.caption;
+                                        qMediaUrl = qMsg.videoMessage.url;
+                                    } else if (qMsg.viewOnceMessage || qMsg.viewOnceMessageV2) {
+                                        qType = 'view_once';
+                                        // ViewOnce is nested
+                                        const voMsg = qMsg.viewOnceMessage?.message || qMsg.viewOnceMessageV2?.message;
+                                        if (voMsg?.imageMessage) {
+                                            qType = 'image'; // Treat as image for stickers
+                                            qMediaUrl = voMsg.imageMessage.url;
+                                        } else if (voMsg?.videoMessage) {
+                                            qType = 'video';
+                                            qMediaUrl = voMsg.videoMessage.url;
+                                        }
+                                    }
+
+                                    quotedMessage = {
+                                        key: qKey,
+                                        type: qType,
+                                        text: qText,
+                                        media_url: qMediaUrl,
+                                        raw: qMsg // Pass raw for advanced handling
+                                    };
+                                }
+
                                 // Determine chat type
                                 const remoteJid = key.remoteJid || '';
                                 const isGroup = remoteJid.endsWith('@g.us');
@@ -189,7 +244,8 @@ router.post('/evolution/:event?', async (req, res) => {
                                     text: messageText,
                                     media_url: mediaUrl,
                                     timestamp: message?.messageTimestamp || Math.floor(Date.now() / 1000),
-                                    status: message?.status || 'received'
+                                    status: message?.status || 'received',
+                                    quoted: quotedMessage
                                 };
                             }
 
@@ -230,6 +286,19 @@ router.post('/evolution/:event?', async (req, res) => {
                 const messageEvent = evolutionAdapter.normalize(data);
 
                 if (messageEvent) {
+                    // MICRO-AUTOMATIONS: Check for commands (!sticker, !everyone, etc.)
+                    // If a command is handled, we SKIP the normal automation engine to prevent double-replies
+                    const { routeCommand } = require('../services/commandRouter');
+                    const commandHandled = await routeCommand(messageEvent, instanceName);
+
+                    if (commandHandled) {
+                        logger.info(`[MicroAutomation] Command handled for ${instanceName}, skipping standard automation.`);
+                        // Return early or just set a flag? 
+                        // Returning early is safer to stop "Hello" bots from replying to "!sticker"
+                        res.status(200).json({ success: true, handled: true });
+                        return;
+                    }
+
                     logger.debug('Triggering automation engine', {
                         from: messageEvent.from,
                         instanceName
