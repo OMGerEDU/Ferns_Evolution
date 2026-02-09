@@ -13,7 +13,7 @@ const COMMAND_PREFIX = '!';
  * @returns {Promise<boolean>} - True if a command was handled, false otherwise
  */
 async function routeCommand(message, instanceName) {
-    const content = message.content || '';
+    const content = message.content?.text || '';
 
     // Quick check for prefix
     if (!content.startsWith(COMMAND_PREFIX)) {
