@@ -1,4 +1,4 @@
-const logger = require('../../../utils/logger');
+const logger = require('../../utils/logger');
 const evolution = require('../../services/evolution');
 
 async function handleMediaCommand(command, args, message, instanceName) {

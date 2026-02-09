@@ -1,4 +1,4 @@
-const logger = require('../../utils/logger');
+const logger = require('../utils/logger');
 const { handleAdminCommand } = require('./commands/admin');
 const { handleMediaCommand } = require('./commands/media');
 const { handlePersonalCommand } = require('./commands/personal');

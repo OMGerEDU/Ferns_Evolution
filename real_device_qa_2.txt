@@ -1,0 +1,21 @@
+--- STARTING REAL DEVICE QA ---
+Target: https://evolution.omger.cloud
+User: 972545661640@s.whatsapp.net
+
+--- TEST 1: !note ---
+[ACTION] Simulating Webhook...
+[ACTION] Webhook Posted OK.
+-> Check your phone: You should receive a "≡ƒף¥" reaction or text confirmation.
+[VERIFY] Checking /api/notes/972545661640@s.whatsapp.net...
+Γתá∩╕ן Verify Skipped/Failed (Backend might need restart): Request failed with status code 500
+
+--- TEST 2: !id ---
+[ACTION] Simulating Webhook...
+[ACTION] Webhook Posted OK.
+-> Check your phone: You should receive your JID info.
+
+--- TEST 3: !sticker ---
+[ACTION] Simulating Webhook...
+[ACTION] Webhook Posted OK.
+-> Check your phone: You should receive a STICKER of a placeholder image.
+---------------------------

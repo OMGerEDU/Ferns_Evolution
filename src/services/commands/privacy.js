@@ -1,4 +1,4 @@
-const logger = require('../../../utils/logger');
+const logger = require('../../utils/logger');
 const evolution = require('../../services/evolution');
 
 async function handlePrivacyCommand(command, args, message, instanceName) {

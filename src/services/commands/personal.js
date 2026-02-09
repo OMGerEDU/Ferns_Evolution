@@ -1,4 +1,4 @@
-const logger = require('../../../utils/logger');
+const logger = require('../../utils/logger');
 const evolution = require('../../services/evolution');
 const { pool } = require('../db');
 
