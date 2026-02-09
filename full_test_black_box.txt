@@ -1,0 +1,37 @@
+--- STARTING BLACK BOX QA ---
+Instance: Sasha, Target: 972501234567@s.whatsapp.net
+[ACTION] Sending "!note Test_1770653416932"...
+[ERROR] Send Failed: Request failed with status code 404
+[ACTION] Sending "!notes"...
+[ERROR] Send Failed: Request failed with status code 404
+[VERIFY] Fetching history to look for "Test_1770653416932"...
+[ERROR] Fetch Failed: Request failed with status code 404
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Error</title>
+[ACTION] Sending "!id"...
+</head>
+<body>
+<pre>Cannot POST /chat/fetchMessages/Sasha</pre>
+</body>
+</html>
+
+[ERROR] Send Failed: Request failed with status code 404
+[VERIFY] Fetching history to look for "ID:"...
+[ERROR] Fetch Failed: Request failed with status code 404
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Error</title>
+</head>
+<body>
+<pre>Cannot POST /chat/fetchMessages/Sasha</pre>
+</body>
+</html>
+
+--- TEST RESULTS ---
+!note Persistence: FAILED
+!id Command: FAILED

@@ -71,6 +71,7 @@ app.use('/api/tenants', authMiddleware, require('./routes/tenants'));
 app.use('/api/automations/builtin', authMiddleware, require('./routes/builtinAutomations'));
 app.use('/api/automations', authMiddleware, require('./routes/automations'));
 app.use('/api/webhook-config', authMiddleware, require('./routes/webhookConfig'));
+app.use('/api/notes', authMiddleware, require('./routes/notes'));
 
 // Webhook routes (legacy internal)
 app.use('/api/webhooks', webhookRoutes);
