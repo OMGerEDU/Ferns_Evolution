@@ -53,14 +53,21 @@ const evolutionAdapter = {
 
         return {
             provider: 'evolution',
-            instanceName: payload.instance, // Specific to Evolution
-            from: key.remoteJid,
+            instanceName: payload.instance,
+            // Match structure expected by CommandRouter and commands
+            id: key.id,
+            remoteJid: key.remoteJid,
+            sender_jid: key.participant || key.remoteJid, // For groups vs private
+            fromMe: key.fromMe,
+            isGroup: key.remoteJid?.endsWith('@g.us'),
+            pushName: data.pushName,
+            messageTimestamp: data.messageTimestamp,
             content: {
                 type: messageType,
                 text: text,
                 url: mediaUrl
             },
-            raw: payload // Keep raw for debugging
+            raw: payload
         };
     },
 
