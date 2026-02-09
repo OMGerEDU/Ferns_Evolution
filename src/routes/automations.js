@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../services/db');
 const logger = require('../utils/logger');
+const { resolveTenantId } = require('../services/tenantResolver');
 
 /**
  * GET /api/automations
@@ -14,13 +15,9 @@ router.get('/', async (req, res) => {
             return res.status(400).json({ success: false, error: 'tenantId required' });
         }
 
-        // Resolve 'default' to the actual tenant UUID
-        if (tenantId === 'default') {
-            const tenantResult = await db.query('SELECT id FROM tenants LIMIT 1');
-            if (tenantResult.rows.length === 0) {
-                return res.status(404).json({ success: false, error: 'No tenant found' });
-            }
-            tenantId = tenantResult.rows[0].id;
+        tenantId = await resolveTenantId(tenantId);
+        if (!tenantId) {
+            return res.status(404).json({ success: false, error: 'No tenant found' });
         }
 
         const { rows } = await db.query(
@@ -46,6 +43,11 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Missing required fields' });
         }
 
+        const resolvedTenantId = await resolveTenantId(tenantId);
+        if (!resolvedTenantId) {
+            return res.status(404).json({ success: false, error: 'No tenant found' });
+        }
+
         const query = `
             INSERT INTO automations (tenant_id, name, trigger, actions, enabled)
             VALUES ($1, $2, $3, $4, $5)
@@ -53,7 +55,7 @@ router.post('/', async (req, res) => {
         `;
 
         const params = [
-            tenantId,
+            resolvedTenantId,
             name,
             JSON.stringify(trigger),
             JSON.stringify(actions || []),
@@ -80,6 +82,11 @@ router.post('/create', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Missing required fields (tenantId, name, trigger)' });
         }
 
+        const resolvedTenantId = await resolveTenantId(tenantId);
+        if (!resolvedTenantId) {
+            return res.status(404).json({ success: false, error: 'No tenant found' });
+        }
+
         const query = `
             INSERT INTO automations (tenant_id, name, trigger, actions, enabled)
             VALUES ($1, $2, $3, $4, $5)
@@ -87,7 +94,7 @@ router.post('/create', async (req, res) => {
         `;
 
         const params = [
-            tenantId,
+            resolvedTenantId,
             name,
             JSON.stringify(trigger),
             JSON.stringify(actions || []),

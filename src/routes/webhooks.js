@@ -224,6 +224,7 @@ router.post('/evolution/:event?', async (req, res) => {
             try {
                 const automationEngine = require('../services/automationEngine');
                 const evolutionAdapter = require('../adapters/evolutionAdapter');
+                const { ensureTenantForInstance } = require('../services/tenantResolver');
 
                 // Normalize the webhook data to automation engine format
                 const messageEvent = evolutionAdapter.normalize(data);
@@ -234,10 +235,8 @@ router.post('/evolution/:event?', async (req, res) => {
                         instanceName
                     });
 
-                    // Process automations for default tenant (async, non-blocking)
-                    // TODO: Support multi-tenancy by mapping instanceName to tenantId
-                    const { rows: tenants } = await db.query('SELECT id FROM tenants LIMIT 1');
-                    const tenantId = tenants.length > 0 ? tenants[0].id : null;
+                    // Process automations for instance-scoped tenant
+                    const tenantId = await ensureTenantForInstance(instanceName);
 
                     if (tenantId) {
                         automationEngine.processEvent(messageEvent, tenantId).catch(err => {
@@ -283,4 +282,3 @@ router.get('/qr/:instanceName', (req, res) => {
 
 module.exports = router;
 module.exports.qrCodeStore = qrCodeStore;
-

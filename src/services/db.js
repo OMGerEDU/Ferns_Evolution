@@ -5,7 +5,7 @@ const config = require('../config');
 const logger = require('../utils/logger');
 
 // Support both DATABASE_URL (Railway, managed Postgres) and individual config (local docker-compose)
-const poolConfig = config.healthCheck.postgres.connectionString
+const poolBaseConfig = config.healthCheck.postgres.connectionString
     ? { connectionString: config.healthCheck.postgres.connectionString }
     : {
         host: config.healthCheck.postgres.host,
@@ -14,6 +14,14 @@ const poolConfig = config.healthCheck.postgres.connectionString
         password: config.healthCheck.postgres.password,
         database: config.healthCheck.postgres.database,
     };
+
+const poolConfig = {
+    ...poolBaseConfig,
+    max: parseInt(process.env.PG_POOL_MAX || '20', 10),
+    idleTimeoutMillis: parseInt(process.env.PG_IDLE_TIMEOUT_MS || '30000', 10),
+    connectionTimeoutMillis: parseInt(process.env.PG_CONN_TIMEOUT_MS || '2000', 10),
+    application_name: process.env.PG_APP_NAME || 'evolution-backend',
+};
 
 const pool = new Pool(poolConfig);
 

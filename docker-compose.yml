@@ -59,6 +59,10 @@ services:
       API_KEY: ${API_KEY}
       EVOLUTION_API_URL: http://evolution_api:8080
       EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      PG_APP_NAME: evolution-backend
+      PG_POOL_MAX: "20"
+      PG_IDLE_TIMEOUT_MS: "30000"
+      PG_CONN_TIMEOUT_MS: "2000"
       WEBHOOK_TARGET_URL: ${WEBHOOK_TARGET_URL}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET}
       DATABASE_URL: ${DATABASE_URL}
@@ -98,7 +102,7 @@ services:
       AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
       DATABASE_ENABLED: "true"
       DATABASE_PROVIDER: postgresql
-      DATABASE_CONNECTION_URI: postgresql://evolution:${POSTGRES_PASSWORD:-evolution_password}@postgres:5432/evolution?schema=public
+      DATABASE_CONNECTION_URI: postgresql://evolution:${POSTGRES_PASSWORD:-evolution_password}@postgres:5432/evolution?schema=public&application_name=evolution_api
       DATABASE_SAVE_DATA_INSTANCE: "true"
       DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
       CACHE_REDIS_ENABLED: "true"
@@ -134,6 +138,7 @@ services:
     image: postgres:15-alpine
     container_name: evolution_postgres
     restart: always
+    command: [ "postgres", "-c", "max_connections=300" ]
     environment:
       POSTGRES_USER: evolution
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-evolution_password}

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../services/db');
 const logger = require('../utils/logger');
+const { resolveTenantId } = require('../services/tenantResolver');
 
 /**
  * GET /api/automations/builtin
@@ -84,13 +85,9 @@ router.post('/:id/enable', async (req, res) => {
             });
         }
 
-        // Resolve 'default' to actual tenant UUID
-        if (tenantId === 'default') {
-            const tenantResult = await db.query('SELECT id FROM tenants LIMIT 1');
-            if (tenantResult.rows.length === 0) {
-                return res.status(404).json({ success: false, error: 'No tenant found' });
-            }
-            tenantId = tenantResult.rows[0].id;
+        tenantId = await resolveTenantId(tenantId);
+        if (!tenantId) {
+            return res.status(404).json({ success: false, error: 'No tenant found' });
         }
 
         // Fetch the built-in template
@@ -188,13 +185,9 @@ router.delete('/:id/disable', async (req, res) => {
             });
         }
 
-        // Resolve 'default' to actual tenant UUID
-        if (tenantId === 'default') {
-            const tenantResult = await db.query('SELECT id FROM tenants LIMIT 1');
-            if (tenantResult.rows.length === 0) {
-                return res.status(404).json({ success: false, error: 'No tenant found' });
-            }
-            tenantId = tenantResult.rows[0].id;
+        tenantId = await resolveTenantId(tenantId);
+        if (!tenantId) {
+            return res.status(404).json({ success: false, error: 'No tenant found' });
         }
 
         const { rows } = await db.query(

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const evolution = require('../services/evolution');
 const logger = require('../utils/logger');
+const { ensureTenantForInstance } = require('../services/tenantResolver');
 
 /**
  * POST /api/instances
@@ -104,6 +105,11 @@ router.post('/', async (req, res, next) => {
             success: true,
             data: finalResult,
         });
+
+        // Ensure tenant exists for this instance (per-instance isolation)
+        ensureTenantForInstance(instanceName).catch((err) => {
+            logger.error('Failed to ensure tenant for instance', { instanceName, error: err.message });
+        });
     } catch (error) {
         // Handle Evolution API errors
         if (error.response) {
@@ -202,6 +208,41 @@ router.get('/:name/qr', async (req, res, next) => {
         const { name } = req.params;
 
         logger.info('Getting QR code', { instanceName: name });
+
+        const qrData = await evolution.connect(name);
+
+        res.json({
+            success: true,
+            data: qrData,
+        });
+    } catch (error) {
+        if (error.response?.status === 404) {
+            return res.status(404).json({
+                success: false,
+                error: 'Instance not found',
+                code: 'INSTANCE_NOT_FOUND',
+            });
+        }
+        if (error.response) {
+            return res.status(error.response.status).json({
+                success: false,
+                error: error.response.data?.message || error.message,
+                code: 'EVOLUTION_ERROR',
+            });
+        }
+        next(error);
+    }
+});
+
+/**
+ * POST /api/instances/:name/rescan-qr
+ * Force regenerate QR code for reconnecting the same instance
+ */
+router.post('/:name/rescan-qr', async (req, res, next) => {
+    try {
+        const { name } = req.params;
+
+        logger.info('Rescanning QR code', { instanceName: name });
 
         const qrData = await evolution.connect(name);
 

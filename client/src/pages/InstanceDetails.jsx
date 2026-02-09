@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
-import { ArrowLeft, Smartphone, Zap, Plus, Settings, MessageSquare, AlertTriangle, History, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { ArrowLeft, Smartphone, Zap, Plus, Settings, MessageSquare, AlertTriangle, History, Clock, CheckCircle2, XCircle, QrCode, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -55,9 +55,9 @@ export default function InstanceDetails() {
     // The requirement says "automations and clickable to move to that automation".
     // We'll fetch all validation rules for 'default' tenant for now.
     const { data: automations, isLoading: loadingAutomations, refetch: refetchAutomations } = useQuery({
-        queryKey: ['automations', 'default'],
+        queryKey: ['automations', instanceName],
         queryFn: async () => {
-            const res = await api.get('/automations?tenantId=default');
+            const res = await api.get(`/automations?tenantId=${instanceName}`);
             console.log('[AUTOMATIONS DEBUG] Response:', res);
             console.log('[AUTOMATIONS DEBUG] Data array:', res.data);
             return res.data || [];
@@ -89,6 +89,9 @@ export default function InstanceDetails() {
     // Webhook Config State
     const [showWebhookConfig, setShowWebhookConfig] = useState(false);
     const [savingWebhook, setSavingWebhook] = useState(false);
+    const [showRescan, setShowRescan] = useState(false);
+    const [rescanLoading, setRescanLoading] = useState(false);
+    const [rescanQr, setRescanQr] = useState(null);
 
     // Fetch Webhook Config
     const { data: webhookConfig, refetch: refetchWebhook, isLoading } = useQuery({
@@ -143,6 +146,26 @@ export default function InstanceDetails() {
         return [...list, item];
     };
 
+    const handleRescanQr = async () => {
+        try {
+            setShowRescan(true);
+            setRescanLoading(true);
+            setRescanQr(null);
+            const res = await api.post(`/instances/${instanceName}/rescan-qr`);
+            const qr = res?.data?.qrcode?.base64 || res?.data?.base64 || res?.qrcode?.base64 || res?.base64;
+            if (qr) {
+                setRescanQr(qr);
+            } else {
+                toast.error('QR not available for this instance');
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error('Failed to rescan QR');
+        } finally {
+            setRescanLoading(false);
+        }
+    };
+
     // Built-in Automations State
     const [builtinConfigs, setBuiltinConfigs] = useState({});
     const [savingBuiltin, setSavingBuiltin] = useState(null);
@@ -168,13 +191,13 @@ export default function InstanceDetails() {
 
             if (enabled) {
                 await api.post(`/automations/builtin/${template.id}/enable`, {
-                    tenantId: 'default',
+                    tenantId: instanceName,
                     config,
                     enabled: true
                 });
                 toast.success(`${template.name} enabled`);
             } else {
-                await api.delete(`/automations/builtin/${template.id}/disable?tenantId=default`);
+                await api.delete(`/automations/builtin/${template.id}/disable?tenantId=${instanceName}`);
                 toast.success(`${template.name} disabled`);
             }
 
@@ -331,6 +354,33 @@ export default function InstanceDetails() {
 
     return (
         <div className="max-w-5xl mx-auto p-6 space-y-8">
+            {showRescan && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="bg-card w-full max-w-md p-6 rounded-xl border border-border shadow-2xl animate-in fade-in zoom-in duration-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-semibold">Rescan QR</h2>
+                            <button onClick={() => setShowRescan(false)} className="text-muted-foreground hover:text-foreground">✕</button>
+                        </div>
+
+                        <div className="text-center space-y-4">
+                            <p className="text-muted-foreground">Scan QR Code to reconnect</p>
+                            {rescanQr ? (
+                                <img src={rescanQr} alt="QR Code" className="mx-auto rounded-lg border-4 border-white w-64 h-64 object-contain bg-white" />
+                            ) : (
+                                <div className="h-64 flex items-center justify-center bg-muted/50 rounded-lg">
+                                    <Loader2 className="animate-spin text-muted-foreground" size={40} />
+                                </div>
+                            )}
+                            <div className="flex justify-center gap-2 pt-2">
+                                <Button variant="outline" onClick={() => setShowRescan(false)}>Close</Button>
+                                <Button onClick={handleRescanQr} disabled={rescanLoading}>
+                                    {rescanLoading ? 'Rescanning...' : 'Rescan'}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* Header */}
             <div>
                 <Button
@@ -365,6 +415,9 @@ export default function InstanceDetails() {
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={() => setShowWebhookConfig(true)}>
                             <Settings className="mr-2 h-4 w-4" /> Webhook Settings
+                        </Button>
+                        <Button variant="outline" onClick={handleRescanQr}>
+                            <QrCode className="mr-2 h-4 w-4" /> Rescan QR
                         </Button>
                         {!isConnected && (
                             <Button onClick={() => navigate('/')}>Connect Now</Button>
