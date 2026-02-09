@@ -44,10 +44,7 @@
     ALTER TABLE instance_webhooks ADD COLUMN IF NOT EXISTS track_outgoing BOOLEAN DEFAULT FALSE;
 
     -- Chats table updates
-    --
-    --
     ALTER TABLE chats ADD COLUMN IF NOT EXISTS unread_count INTEGER DEFAULT 0;
-    #####
 
     -- Built-in Automations System
     -- Table for defining built-in automation templates
@@ -246,4 +243,3 @@
         '[{"type": "ignore_message"}]'
     )
     ON CONFLICT (id) DO NOTHING;
-

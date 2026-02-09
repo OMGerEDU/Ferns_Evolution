@@ -1,0 +1,50 @@
+# Evolution Backend - Environment Configuration
+# Generated for local development/testing
+
+# ============================================
+# ============================================
+# Backend Service API Key
+# ============================================
+# Use this key when calling YOUR backend endpoints
+API_KEY=54yWPufPt9y2Wp9QUap
+
+# ============================================
+# Evolution API Key
+# ============================================
+# This secures the Evolution WhatsApp API
+# URL for Evolution API (Use localhost:8091 for local dev, evolution_api:8080 for docker)
+EVOLUTION_API_URL=https://evolution.omger.cloud
+EVOLUTION_API_KEY=qU6wW154sRKLuPs861q
+
+# ============================================
+# Webhook Configuration
+# ============================================
+# Where Evolution sends webhook events
+# For local testing without AdminPanel, leave as placeholder
+# Evolution sends events directly to your Admin Panel here:
+WEBHOOK_GLOBAL_URL=http://evolution_backend:3002/api/webhooks/evolution
+WEBHOOK_GLOBAL_ENABLED=true
+
+# (Optional/Future use)
+WEBHOOK_TARGET_URL=http://evolution_backend:3002/api/webhooks/evolution
+
+# HMAC signing secret (optional)
+WEBHOOK_SECRET=KK8HqPlJNqJctApJ98n
+
+# ============================================
+# Database
+# ============================================
+POSTGRES_PASSWORD=evolution_password
+# ============================================
+# Cloudflare Tunnel Configuration
+# ============================================
+# Get your token from Cloudflare Zero Trust Dashboard
+CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoiMTY0OTRkNDlmMDAwMmMyN2ZkOTU4OWM4MTYzYjcxNDkiLCJ0IjoiYjIxNmZmZTQtYmUyNy00NWI1LWJiM2UtYzAyODVhYzU1N2E2IiwicyI6IllqRXpNRFV3TURVdFkyTXhOaTAwTURoakxUa3lNRFV0TURRMVpUZ3hNVFZrWTJFMSJ9
+
+
+
+VITE_SUPABASE_URL=https://tevicnjzxcbswsffcgoy.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRldmljbmp6eGNic3dzZmZjZ295Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2Nzk2ODIsImV4cCI6MjA4MTI1NTY4Mn0.uBr-Hv9fWZCOdqvtxbx-rkzQbCievgwquJC30VGAGL0
+DATABASE_URL=postgresql://postgres.tevicnjzxcbswsffcgoy:ihA4acGZ3Wl2Ixjg@aws-1-eu-west-2.pooler.supabase.com:6543/postgres
+SUPABASE_ACCESS_TOKEN=sbp_04531f63a9a1e7c9430eb1c5ba2a4fc5a74d81c9
+SUPABASE_PROJECT_ID=tevicnjzxcbswsffcgoy

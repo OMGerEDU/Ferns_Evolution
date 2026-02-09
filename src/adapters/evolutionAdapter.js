@@ -13,13 +13,15 @@ const evolutionAdapter = {
      */
     normalize: (payload) => {
         const data = payload.data;
-        if (!data || !data.message) return null;
+        if (!data) return null;
 
-        const message = data.message;
-        const key = message.key;
+        // Evolution API can send key at top-level (data.key) or nested (data.message.key)
+        const key = data.key || data.message?.key;
         if (!key || key.fromMe) return null; // Loop prevention
 
-        const messageContent = message.message;
+        // Message content may be nested (data.message.message) or direct (data.message)
+        const messageContent = data.message?.message ? data.message.message : data.message;
+        if (!messageContent) return null;
 
         // Extract text content (for text messages or captions)
         const text = messageContent?.conversation ||
