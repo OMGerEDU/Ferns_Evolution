@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (use npm install since we might not have package-lock.json)
-RUN npm install --omit=dev
+# Install dependencies (install ALL dependencies to be safe)
+RUN npm install
 
 # Build stage for frontend
 FROM node:20-alpine AS frontend-builder
@@ -29,14 +29,16 @@ WORKDIR /app
 RUN apk update && apk add --no-cache wget
 RUN apk update && apk add --no-cache ffmpeg
 
+# Copy package files first
+COPY package.json ./
+
 # Copy from builder
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=frontend-builder /public/admin-new ./public/admin-new
 
-# Copy source code and package files
+# Copy source code and public assets
 COPY src/ ./src/
 COPY public/ ./public/
-COPY package.json ./
 
 
 # Create non-root user

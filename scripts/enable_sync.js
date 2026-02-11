@@ -5,8 +5,8 @@ const path = require('path');
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-const API_KEY = process.env.API_KEY || '445566';
-const BASE_URL = process.env.EXTERNAL_URL || 'http://localhost:3000';
+const API_KEY = process.env.API_KEY || '54yWPufPt9y2Wp9QUap';
+const BASE_URL = process.env.EXTERNAL_URL || 'https://evolution.omger.cloud';
 // const INSTANCE_NAME = 'Omer 09022026';
 const INSTANCE_NAME = process.env.INSTANCE_NAME || 'Omer 09022026';
 
