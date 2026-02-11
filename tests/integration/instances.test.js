@@ -33,6 +33,12 @@ describe('Instance Management API', () => {
                 },
                 hash: { apikey: 'some-hash-key' }
             });
+        // Mock connect call triggered when create response has no QR/pairing code
+        nock(EVO_URL)
+            .get(`/instance/connect/${instanceName}`)
+            .reply(200, {
+                base64: 'fake-qr-base64'
+            });
 
         const res = await request(app)
             .post('/api/instances')

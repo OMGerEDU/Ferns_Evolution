@@ -1,14 +1,3 @@
-# Build stage
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies (install ALL dependencies to be safe)
-RUN npm install
-
 # Build stage for frontend
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app
@@ -22,24 +11,17 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install curl for health checks
 # Install curl for health checks and ffmpeg for media processing
-#RUN apk update && apk add --no-cache curl
-#RUN apk update && apk add --no-cache ffmpeg
-RUN apk update && apk add --no-cache wget
-RUN apk update && apk add --no-cache ffmpeg
+RUN apk update && apk add --no-cache wget ffmpeg
 
-# Copy package files first
-COPY package.json ./
+# Install backend dependencies
+COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Copy from builder
-COPY --from=builder /app/node_modules ./node_modules
+# Copy built frontend and backend source
 COPY --from=frontend-builder /public/admin-new ./public/admin-new
-
-# Copy source code and public assets
 COPY src/ ./src/
 COPY public/ ./public/
-
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -51,11 +33,11 @@ RUN mkdir -p logs && chown -R nodejs:nodejs /app
 USER nodejs
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3002
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget -q --spider http://localhost:3000/health || exit 1
+  CMD wget -q --spider http://localhost:3002/health || exit 1
 
 # Start application
 CMD ["node", "src/index.js"]

@@ -10,10 +10,10 @@
 
 const axios = require('axios');
 
-const BACKEND_URL = 'https://evolution.omger.cloud/api/webhooks/evolution';
-const HEALTH_URL = 'https://evolution.omger.cloud/health';
-const INSTANCE = process.argv[2] || 'Sasha';
-const TARGET_JID = '1234567890@s.whatsapp.net'; // Fake user
+const BACKEND_URL = process.env.BACKEND_URL || 'https://evolution.omger.cloud/api/webhooks/evolution';
+const HEALTH_URL = process.env.HEALTH_URL || 'https://evolution.omger.cloud/health';
+const INSTANCE = process.argv[2] || process.env.INSTANCE || 'Sasha';
+const TARGET_JID = process.env.TARGET_JID || '1234567890@s.whatsapp.net'; // Fake user
 
 async function checkHealth() {
     try {
