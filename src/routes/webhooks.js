@@ -65,8 +65,21 @@ router.post('/evolution/:event?', async (req, res) => {
                 if (rows.length > 0) {
                     const config = rows[0];
                     // Ensure valid arrays
-                    const subscribedEvents = typeof config.events === 'string' ? JSON.parse(config.events) : (config.events || []);
-                    const subscribedSources = typeof config.sources === 'string' ? JSON.parse(config.sources) : (config.sources || []);
+                    let subscribedEvents = [];
+                    try {
+                        subscribedEvents = typeof config.events === 'string' ? JSON.parse(config.events) : (config.events || []);
+                    } catch (e) {
+                        logger.warn(`Invalid events config for ${instanceName}`, { error: e.message });
+                        subscribedEvents = [];
+                    }
+
+                    let subscribedSources = [];
+                    try {
+                        subscribedSources = typeof config.sources === 'string' ? JSON.parse(config.sources) : (config.sources || []);
+                    } catch (e) {
+                        logger.warn(`Invalid sources config for ${instanceName}`, { error: e.message });
+                        subscribedSources = [];
+                    }
 
                     // Check Event Type
                     // normalize event name from params or body: "messages-upsert" -> "messages.upsert"

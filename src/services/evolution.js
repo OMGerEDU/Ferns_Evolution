@@ -570,7 +570,7 @@ async function getBase64(instanceName, message) {
     const isInternalObject = !message.key && (message.green_id || message.chat_id);
 
     if (isInternalObject) {
-        console.log(`[Evolution] Detected internal message object. Attempting resolve. ID: ${messageId}`);
+        logger.debug(`[Evolution] Detected internal message object. Attempting resolve. ID: ${messageId}`, { messageId });
         try {
             // Build Where clause
             // Note: Evolution findMessages often requires remoteJid for efficiency or uniqueness,
@@ -591,7 +591,7 @@ async function getBase64(instanceName, message) {
                 where: whereClause
             };
 
-            console.log(`[Evolution] Looking up raw message with payload:`, JSON.stringify(findPayload));
+            logger.debug(`[Evolution] Looking up raw message with payload`, { payload: findPayload });
 
             const findRes = await retryWithBackoff(() =>
                 client.post(`/chat/findMessages/${instanceName}`, findPayload, { customContext: { functionName: 'getBase64_find' } })
@@ -602,12 +602,12 @@ async function getBase64(instanceName, message) {
             if (messages.length > 0) {
                 messageToUse = messages[0];
                 const type = Object.keys(messageToUse.message || {})[0];
-                console.log(`[Evolution] Found raw message. Type: ${type}, Key: ${JSON.stringify(messageToUse.key)}`);
+                logger.debug(`[Evolution] Found raw message`, { type, key: messageToUse.key });
             } else {
-                console.warn(`[Evolution] Raw message not found for ID ${messageId}. Attempting with original object.`);
+                logger.warn(`[Evolution] Raw message not found for ID ${messageId}. Attempting with original object.`);
             }
         } catch (error) {
-            console.error(`[Evolution] Error fetching raw message: ${error.message}`);
+            logger.error(`[Evolution] Error fetching raw message: ${error.message}`);
             if (error.response) {
                 console.error(`[Evolution] Upstream Error Data:`, JSON.stringify(error.response.data));
             }
@@ -699,6 +699,26 @@ async function setWebhook(instanceName, webhookUrl, enabled = true, events = nul
     return response.data;
 }
 
+/**
+ * Fetch Instance Settings
+ */
+async function fetchSettings(instanceName) {
+    const response = await retryWithBackoff(() =>
+        client.get(`/instance/settings/find/${instanceName}`, { customContext: { functionName: 'fetchSettings' } })
+    );
+    return response.data;
+}
+
+/**
+ * Update Instance Settings
+ */
+async function updateSettings(instanceName, settings) {
+    const response = await retryWithBackoff(() =>
+        client.post(`/instance/settings/set/${instanceName}`, settings, { customContext: { functionName: 'updateSettings' } })
+    );
+    return response.data;
+}
+
 module.exports = {
     client,
     createInstance,
@@ -740,5 +760,8 @@ module.exports = {
     sendSticker,
     // Webhooks
     findWebhook,
-    setWebhook
+    setWebhook,
+    // Settings
+    fetchSettings,
+    updateSettings
 };

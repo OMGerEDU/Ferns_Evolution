@@ -1,6 +1,8 @@
 const axios = require('axios');
 const logger = require('./logger');
 
+const { retryWithBackoff } = require('../utils/retry');
+
 /**
  * Unified interface for AI LLM providers
  */
@@ -19,13 +21,23 @@ const aiProvider = {
         }
 
         try {
-            if (provider === 'openai') {
-                return await callOpenAI(systemPrompt, userPrompt, model, apiKey);
-            } else if (provider === 'claude') {
-                return await callClaude(systemPrompt, userPrompt, model, apiKey);
-            } else {
-                throw new Error(`Unsupported AI provider: ${provider}`);
-            }
+            return await retryWithBackoff(async () => {
+                if (provider === 'openai') {
+                    return await callOpenAI(systemPrompt, userPrompt, model, apiKey);
+                } else if (provider === 'claude') {
+                    return await callClaude(systemPrompt, userPrompt, model, apiKey);
+                } else {
+                    throw new Error(`Unsupported AI provider: ${provider}`);
+                }
+            }, {
+                maxRetries: 3,
+                initialDelay: 1000,
+                // Don't retry if it's a 4xx error (client error), except 429
+                retryOn: (error) => {
+                    const status = error.response?.status;
+                    return !status || status >= 500 || status === 429;
+                }
+            });
         } catch (error) {
             logger.error(`AI Provider error [${provider}]`, {
                 error: error.response?.data || error.message
@@ -47,7 +59,8 @@ async function callOpenAI(system, user, model, key) {
         headers: {
             'Authorization': `Bearer ${key}`,
             'Content-Type': 'application/json'
-        }
+        },
+        timeout: 60000 // 60s timeout
     });
 
     return response.data.choices[0].message.content;
@@ -66,7 +79,8 @@ async function callClaude(system, user, model, key) {
             'x-api-key': key,
             'anthropic-version': '2023-06-01',
             'Content-Type': 'application/json'
-        }
+        },
+        timeout: 60000 // 60s timeout
     });
 
     return response.data.content[0].text;

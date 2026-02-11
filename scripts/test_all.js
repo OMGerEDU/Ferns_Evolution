@@ -5,15 +5,19 @@ require('dotenv').config();
 // Configuration
 const BACKEND_URL = process.env.TEST_BACKEND_URL || 'http://localhost:3101';
 const EXTERNAL_URL = 'https://evolution.omger.cloud';
-const API_KEY = process.env.API_KEY;
+const API_KEY = process.env.API_KEY || '54yWPufPt9y2Wp9QUap';
 const ADMIN_USER = 'omger';
 const ADMIN_PASS = 'zxcv1234';
+
+console.log(`\nMeasured Backend URL: ${BACKEND_URL}`);
+
 
 // Clients
 const localClient = axios.create({
     baseURL: BACKEND_URL,
     timeout: 10000,
-    headers: { 'apikey': API_KEY, 'Host': 'localhost' },
+    headers: { 'apikey': API_KEY },
+    httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     validateStatus: () => true
 });
 
@@ -21,6 +25,7 @@ const externalClient = axios.create({
     baseURL: EXTERNAL_URL,
     timeout: 10000,
     headers: { 'apikey': API_KEY },
+    httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     validateStatus: () => true
 });
 

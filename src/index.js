@@ -83,31 +83,38 @@ app.use('/wh', webhookRelayRoutes);
 app.use(errorHandler);
 
 // Start server
-const server = app.listen(config.port, async () => {
-    logger.info(`🚀 Evolution Backend started on port ${config.port}`);
-    logger.info(`📡 Evolution API URL: ${config.evolution.url}`);
-    logger.info(`🔧 Environment: ${config.nodeEnv}`);
+// Start server only if run directly
+if (require.main === module) {
+    const server = app.listen(config.port, async () => {
+        logger.info(`🚀 Evolution Backend started on port ${config.port}`);
+        logger.info(`📡 Evolution API URL: ${config.evolution.url}`);
+        logger.info(`🔧 Environment: ${config.nodeEnv}`);
 
-    // Initialize DB Schema
-    await db.initDb();
-});
-
-// Graceful shutdown
-const shutdown = (signal) => {
-    logger.info(`${signal} received, shutting down gracefully...`);
-    server.close(() => {
-        logger.info('Server closed');
-        process.exit(0);
+        // Initialize DB Schema
+        await db.initDb();
     });
 
-    // Force exit after 10 seconds
-    setTimeout(() => {
-        logger.error('Forced shutdown after 10s timeout');
-        process.exit(1);
-    }, 10000);
-};
+    // Graceful shutdown setup within the unrelated block
+    const shutdown = (signal) => {
+        logger.info(`${signal} received, shutting down gracefully...`);
+        server.close(() => {
+            logger.info('Server closed');
+            process.exit(0);
+        });
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+        // Force exit after 10 seconds
+        setTimeout(() => {
+            logger.error('Forced shutdown after 10s timeout');
+            process.exit(1);
+        }, 10000);
+    };
 
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+}
+
+
+
+// Export app for testing
 module.exports = app;
+

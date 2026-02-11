@@ -21,8 +21,17 @@ router.get('/:instanceName', async (req, res) => {
 
         // Parse JSON fields
         const config = rows[0];
-        config.events = typeof config.events === 'string' ? JSON.parse(config.events) : config.events;
-        config.sources = typeof config.sources === 'string' ? JSON.parse(config.sources) : config.sources;
+        try {
+            config.events = typeof config.events === 'string' ? JSON.parse(config.events) : config.events;
+        } catch (e) {
+            config.events = [];
+        }
+
+        try {
+            config.sources = typeof config.sources === 'string' ? JSON.parse(config.sources) : config.sources;
+        } catch (e) {
+            config.sources = [];
+        }
 
         res.json({ success: true, data: config });
     } catch (error) {

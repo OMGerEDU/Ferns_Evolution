@@ -164,8 +164,9 @@ async function executeGraphFlow(graph, event, context) {
         const nextBatch = [];
 
         for (const node of currentNodes) {
-            if (visited.has(node.id)) continue;
-            visited.add(node.id);
+            // Allow revisiting nodes for loops (controlled by max iterations)
+            // if (visited.has(node.id)) continue;
+            // visited.add(node.id);
 
             // Execute node action
             const shouldContinue = await executeNode(node, event, context);
@@ -283,7 +284,8 @@ async function executeNode(node, event, context) {
                 await axios({
                     method,
                     url,
-                    data: context
+                    data: context,
+                    timeout: 30000 // 30s timeout
                 });
                 return true;
             }
@@ -448,8 +450,14 @@ async function executeNode(node, event, context) {
                         minute: '2-digit'
                     });
 
-                    // Simple string comparison (works for HH:MM format)
-                    const isWithinHours = currentTime >= start && currentTime <= end;
+                    // Handle cross-day intervals (e.g. 22:00 -> 02:00)
+                    let isWithinHours;
+                    if (start <= end) {
+                        isWithinHours = currentTime >= start && currentTime <= end;
+                    } else {
+                        // Interval crosses midnight
+                        isWithinHours = currentTime >= start || currentTime <= end;
+                    }
 
                     // Apply invert if needed (for "outside business hours" logic)
                     const result = invert ? !isWithinHours : isWithinHours;

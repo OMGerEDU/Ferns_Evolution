@@ -7,7 +7,7 @@ require('dotenv').config();
  */
 
 const EXTERNAL_URL = 'https://evolution.omger.cloud';
-const API_KEY = process.env.API_KEY;
+const API_KEY = process.env.API_KEY || '54yWPufPt9y2Wp9QUap';
 
 async function testExternalAccess() {
     console.log(`\n--- testing External Access to: ${EXTERNAL_URL} ---\n`);

@@ -360,4 +360,75 @@ router.post('/:name/restart', async (req, res, next) => {
     }
 });
 
+/**
+ * GET /api/instances/:name/settings
+ * Get instance settings
+ */
+router.get('/:name/settings', async (req, res, next) => {
+    try {
+        const { name } = req.params;
+
+        logger.info('Fetching instance settings', { instanceName: name });
+
+        const settings = await evolution.fetchSettings(name);
+
+        res.json({
+            success: true,
+            data: settings,
+        });
+    } catch (error) {
+        if (error.response?.status === 404) {
+            return res.status(404).json({
+                success: false,
+                error: 'Instance not found',
+                code: 'INSTANCE_NOT_FOUND',
+            });
+        }
+        if (error.response) {
+            return res.status(error.response.status).json({
+                success: false,
+                error: error.response.data?.message || error.message,
+                code: 'EVOLUTION_ERROR',
+            });
+        }
+        next(error);
+    }
+});
+
+/**
+ * POST /api/instances/:name/settings
+ * Update instance settings
+ */
+router.post('/:name/settings', async (req, res, next) => {
+    try {
+        const { name } = req.params;
+        const settings = req.body;
+
+        logger.info('Updating instance settings', { instanceName: name, settings });
+
+        const result = await evolution.updateSettings(name, settings);
+
+        res.json({
+            success: true,
+            data: result,
+        });
+    } catch (error) {
+        if (error.response?.status === 404) {
+            return res.status(404).json({
+                success: false,
+                error: 'Instance not found',
+                code: 'INSTANCE_NOT_FOUND',
+            });
+        }
+        if (error.response) {
+            return res.status(error.response.status).json({
+                success: false,
+                error: error.response.data?.message || error.message,
+                code: 'EVOLUTION_ERROR',
+            });
+        }
+        next(error);
+    }
+});
+
 module.exports = router;
