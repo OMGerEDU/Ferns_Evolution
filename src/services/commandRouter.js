@@ -28,6 +28,8 @@ async function routeCommand(message, instanceName) {
 
     try {
         switch (command) {
+            case 'help':
+                return await handleHelpCommand(instanceName, message.remoteJid, message.fromMe);
             // Media Pack
             case 'sticker':
             case 's':
@@ -61,6 +63,25 @@ async function routeCommand(message, instanceName) {
         logger.error(`[CommandRouter] Error execution command ${command}:`, error);
         return false;
     }
+}
+
+const evolution = require('./evolution');
+
+async function handleHelpCommand(instanceName, remoteJid, fromMe) {
+    // If testing from API (fromMe=false), reply to remoteJid. If real fromMe, reply to remoteJid (self).
+    const helpText = `*🤖 Bot Command Menu*\n\n` +
+        `*Media Commands:*\n` +
+        `!sticker - Convert image/video to sticker\n` +
+        `!toimg - Convert sticker to image\n\n` +
+        `*Admin Commands:*\n` +
+        `!everyone - Tag everyone in group\n` +
+        `!id - Get Chat ID\n\n` +
+        `*Personal:*\n` +
+        `!note <text> - Save a note\n` +
+        `!me - Get your info`;
+
+    await evolution.sendText(instanceName, remoteJid, helpText);
+    return true;
 }
 
 module.exports = { routeCommand };

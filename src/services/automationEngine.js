@@ -60,8 +60,14 @@ const automationEngine = {
                     // rule.actions can now be a Graph object: { nodes: [], edges: [] }
                     // For legacy, it might be an array of simple actions.
                     if (Array.isArray(rule.actions)) {
-                        await executeLinearActions(rule.actions, event, context);
+                        const result = await executeLinearActions(rule.actions, event, context);
                         logData.action_taken = rule.actions[0]?.action || 'unknown';
+
+                        // Stop propagation if a response was sent (avoid double replies)
+                        if (result === true && (logData.action_taken.includes('reply') || logData.action_taken.includes('filter'))) {
+                            logger.info('Stopping propagation after successful reply/filter', { rule: rule.name });
+                            break;
+                        }
                     } else if (rule.actions && rule.actions.nodes) {
                         await executeGraphFlow(rule.actions, event, context);
                         logData.action_taken = 'graph_flow';
