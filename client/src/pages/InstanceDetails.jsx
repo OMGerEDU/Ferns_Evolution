@@ -853,5 +853,6 @@ export default function InstanceDetails() {
                     </div>
                 </div>
             </div>
-            );
+        </div>
+        );
 }

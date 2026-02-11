@@ -262,15 +262,30 @@ router.post('/evolution/:event?', async (req, res) => {
                                 };
                             }
 
-                            // Forward enriched payload
-                            logger.info(`Forwarding enriched webhook to ${targetUrl}`, {
-                                event: currentEvent,
-                                hasMessage: !!webhookPayload.message,
-                                isOutgoing: isFromMe
-                            });
+                            // Forward enriched payload (avoid self-loop)
+                            const publicWebhookUrl = process.env.PUBLIC_WEBHOOK_URL;
+                            const loopTargets = [
+                                'http://evolution_backend:3002/api/webhooks/evolution',
+                                'http://localhost:3002/api/webhooks/evolution',
+                                publicWebhookUrl
+                            ].filter(Boolean);
 
-                            axios.post(targetUrl, webhookPayload)
-                                .catch(err => logger.error(`Failed to forward webhook to ${targetUrl}`, { error: err.message }));
+                            if (loopTargets.includes(targetUrl)) {
+                                logger.warn('Skipping webhook forward to avoid loop', {
+                                    targetUrl,
+                                    instanceName,
+                                    event: currentEvent
+                                });
+                            } else {
+                                logger.info(`Forwarding enriched webhook to ${targetUrl}`, {
+                                    event: currentEvent,
+                                    hasMessage: !!webhookPayload.message,
+                                    isOutgoing: isFromMe
+                                });
+
+                                axios.post(targetUrl, webhookPayload)
+                                    .catch(err => logger.error(`Failed to forward webhook to ${targetUrl}`, { error: err.message }));
+                            }
                         }
                     }
                 } else {
