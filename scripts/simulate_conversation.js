@@ -23,36 +23,43 @@ const log = (msg) => console.log(`[${new Date().toISOString()}] ${msg}`);
 /**
  * DEFINE YOUR CONVERSATION FLOW HERE
  */
-const SCENARIO = [
-    {
-        label: "Step 1: Simple Ping",
-        customerSays: "ping",
-        note: "Server should reply 'pong'"
-    },
-    {
-        label: "Step 2: Unknown Message",
-        customerSays: "Hello there!",
-        note: "Server should reply with Receipt Confirmation (if enabled)"
-    },
-    {
-        label: "Step 3: Testing Help",
-        customerSays: "!help",
-        note: "Server should reply with Command Menu (via Command Router)"
-    }
-];
+async function runScenario() {
+    console.log(`\n--- 🎭 Starting Conversation Simulation: ${INSTANCE_NAME} ---`);
+    const TARGET_JID = '972538245304@s.whatsapp.net'; // Ebi01
 
-async function injectMessage(text) {
+    // 1. Simulate "Ping"
+    console.log(`\n🔹 Test 1: Ping from Ebi01`);
+    await injectMessage('ping', TARGET_JID);
+    console.log(`   ✅ Sent!`);
+    await sleep(2000);
+
+    // 2. Simulate "Hello"
+    console.log(`\n🔹 Test 2: Hello from Ebi01`);
+    await injectMessage('Hello from Simulation', TARGET_JID);
+    console.log(`   ✅ Sent!`);
+    await sleep(2000);
+
+    // 3. Simulate "!help"
+    console.log(`\n🔹 Test 3: !help from Ebi01`);
+    await injectMessage('!help', TARGET_JID);
+    console.log(`   ✅ Sent!`);
+    await sleep(2000);
+
+    console.log(`\n--- 🏁 Simulation Complete ---`);
+}
+
+async function injectMessage(text, remoteJid) {
     const timestamp = Math.floor(Date.now() / 1000);
     const webhookPayload = {
         event: 'messages.upsert',
         instance: INSTANCE_NAME,
         data: {
             key: {
-                remoteJid: OWNER_JID,
-                fromMe: false, // Vital: Simulates message FROM customer
+                remoteJid: remoteJid,
+                fromMe: false,
                 id: `SIM_${Date.now()}`
             },
-            pushName: 'Simulated Customer',
+            pushName: 'Ebi01 Simulation',
             messageTimestamp: timestamp,
             message: {
                 conversation: text
@@ -62,32 +69,23 @@ async function injectMessage(text) {
     };
 
     try {
+        // Use the internal endpoint if modifying for local test, otherwise external
+        // Here we use the path that matched previous success or direct webhook
+        // POST /api/webhooks/evolution/messages.upsert
         const res = await client.post('/api/webhooks/evolution/messages.upsert', webhookPayload);
+        if (res.status === 200) {
+            console.log(`   SERVER: 200 OK`);
+        } else {
+            console.log(`   SERVER: ${res.status}`);
+        }
         return res.status === 200;
     } catch (err) {
-        console.error('Injection failed:', err.message);
+        console.error('   ❌ Injection failed:', err.message);
+        if (err.response) {
+            console.error('   ❌ Response:', err.response.data);
+        }
         return false;
     }
-}
-
-async function runScenario() {
-    console.log(`\n--- 🎭 Starting Conversation Simulation: ${INSTANCE_NAME} ---`);
-    console.log(`Target: ${OWNER_JID} (You will receive replies here)\n`);
-
-    for (const step of SCENARIO) {
-        console.log(`\n🔹 ${step.label}`);
-        console.log(`   Customer writes: "${step.customerSays}"`);
-
-        await injectMessage(step.customerSays);
-
-        console.log(`   ✅ Sent!`);
-        console.log(`   👀 Expectation: ${step.note}`);
-        console.log(`   ⏳ Waiting 5 seconds for reply...`);
-
-        await sleep(5000); // Give time for server to reply and user to read
-    }
-
-    console.log(`\n--- 🏁 Simulation Complete ---`);
 }
 
 runScenario();
