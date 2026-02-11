@@ -57,6 +57,7 @@ const evolutionAdapter = {
             // Match structure expected by CommandRouter and commands
             id: key.id,
             remoteJid: key.remoteJid,
+            from: key.remoteJid, // Required by automationEngine
             sender_jid: key.participant || key.remoteJid, // For groups vs private
             fromMe: key.fromMe,
             isGroup: key.remoteJid?.endsWith('@g.us'),

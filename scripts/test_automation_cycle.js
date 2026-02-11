@@ -89,9 +89,10 @@ async function runAutomationCycle() {
             if (chatRes.data?.data) {
                 const chats = chatRes.data.data;
                 log(`Found ${chats.length} active chats.`);
-                const myChat = chats.find(c => c.id === OWNER_JID || c.id?.includes(OWNER_JID.split('@')[0]));
+                // Fix: Check remoteJid for WhatsApp JID, not id (which is internal UUID)
+                const myChat = chats.find(c => c.remoteJid === OWNER_JID || c.remoteJid?.includes(OWNER_JID.split('@')[0]));
                 if (myChat) {
-                    log(`✅ Found Chat with OWNER_JID: ${myChat.id}`);
+                    log(`✅ Found Chat with OWNER_JID: ${myChat.remoteJid} (Internal ID: ${myChat.id})`);
                 } else {
                     log(`⚠️ Chat with OWNER_JID (${OWNER_JID}) NOT found in chat list.`);
                 }

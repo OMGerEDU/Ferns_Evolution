@@ -1,35 +1,35 @@
---- Test Run Start: 2026-02-11T10:58:21.067Z ---
-[2026-02-11T10:58:21.070Z] [INFO] 
+--- Test Run Start: 2026-02-11T11:20:12.867Z ---
+[2026-02-11T11:20:12.870Z] [INFO] 
 --- 🔄 Automation Lifecycle Test: Omer 09022026 ---
 
-[2026-02-11T10:58:21.073Z] [INFO] 1. Enabling "System Help" Automation...
-[2026-02-11T10:58:22.169Z] [INFO] ✅ Automation enabled.
-[2026-02-11T10:58:24.171Z] [INFO] ⏳ Waiting 5s...
-[2026-02-11T10:58:29.181Z] [INFO] 
+[2026-02-11T11:20:12.875Z] [INFO] 1. Enabling "System Help" Automation...
+[2026-02-11T11:20:13.543Z] [INFO] ✅ Automation enabled.
+[2026-02-11T11:20:15.545Z] [INFO] ⏳ Waiting 5s...
+[2026-02-11T11:20:20.555Z] [INFO] 
 2.5. Diagnostic: Sending real text message to ensure chat exists...
-[2026-02-11T10:58:29.732Z] [INFO] ✅ Diagnostic message sent.
-[2026-02-11T10:58:29.732Z] [INFO] ⏳ Waiting 5s for sync...
-[2026-02-11T10:58:34.741Z] [INFO] 
+[2026-02-11T11:20:21.103Z] [INFO] ✅ Diagnostic message sent.
+[2026-02-11T11:20:21.104Z] [INFO] ⏳ Waiting 5s for sync...
+[2026-02-11T11:20:26.116Z] [INFO] 
 2.6. Diagnostic: Fetching Chats...
-[2026-02-11T10:58:35.298Z] [INFO] Found 222 active chats.
-[2026-02-11T10:58:35.299Z] [INFO] ⚠️ Chat with OWNER_JID (972545661640@s.whatsapp.net) NOT found in chat list.
-[2026-02-11T10:58:35.300Z] [INFO] 
+[2026-02-11T11:20:26.666Z] [INFO] Found 222 active chats.
+[2026-02-11T11:20:26.666Z] [INFO] ✅ Found Chat with OWNER_JID: 972545661640@s.whatsapp.net (Internal ID: cmlfa0dp100vdo0tki7czdenk)
+[2026-02-11T11:20:26.667Z] [INFO] 
 2. Triggering "!help" via Webhook Injection (Simulating sender: 972545661640@s.whatsapp.net)...
-[2026-02-11T10:58:35.769Z] [INFO] ✅ Webhook injected successfully.
-[2026-02-11T10:58:35.770Z] [INFO] ⏳ Waiting 10s for processing...
-[2026-02-11T10:58:45.779Z] [INFO] 
+[2026-02-11T11:20:27.138Z] [INFO] ✅ Webhook injected successfully.
+[2026-02-11T11:20:27.139Z] [INFO] ⏳ Waiting 10s for processing...
+[2026-02-11T11:20:37.142Z] [INFO] 
 3. Verifying Bot Reply...
-[2026-02-11T10:58:46.240Z] [INFO] Raw Find Response Data Type: object
-[2026-02-11T10:58:46.241Z] [INFO] Found 0 messages in history.
-[2026-02-11T10:58:46.241Z] [INFO] ⚠️ Specific search returned 0 messages. Attempting broad search (no filters)...
-[2026-02-11T10:58:46.629Z] [INFO] Broad search found 0 messages.
-[2026-02-11T10:58:47.203Z] [ERROR] ❌ CRITICAL DIAGNOSIS: Chats exist (222) but Message Search returned 0 results.
-[2026-02-11T10:58:47.204Z] [ERROR] 👉 This indicates that the Evolution API Database Sync is DISABLED or BROKEN for this instance.
-[2026-02-11T10:58:47.206Z] [ERROR] 👉 The automation might be working, but we cannot verify it via API history.
-[2026-02-11T10:58:47.206Z] [INFO] ⚠️ Could not find expected "Help" reply in history.
-[2026-02-11T10:58:47.207Z] [INFO] 👉 Please check your phone manually. If it replied, there might be a sync delay or keyword mismatch.
-[2026-02-11T10:58:47.208Z] [INFO] 
+[2026-02-11T11:20:37.621Z] [INFO] Raw Find Response Data Type: object
+[2026-02-11T11:20:37.622Z] [INFO] Found 0 messages in history.
+[2026-02-11T11:20:37.622Z] [INFO] ⚠️ Specific search returned 0 messages. Attempting broad search (no filters)...
+[2026-02-11T11:20:38.008Z] [INFO] Broad search found 0 messages.
+[2026-02-11T11:20:38.811Z] [ERROR] ❌ CRITICAL DIAGNOSIS: Chats exist (222) but Message Search returned 0 results.
+[2026-02-11T11:20:38.813Z] [ERROR] 👉 This indicates that the Evolution API Database Sync is DISABLED or BROKEN for this instance.
+[2026-02-11T11:20:38.815Z] [ERROR] 👉 The automation might be working, but we cannot verify it via API history.
+[2026-02-11T11:20:38.815Z] [INFO] ⚠️ Could not find expected "Help" reply in history.
+[2026-02-11T11:20:38.816Z] [INFO] 👉 Please check your phone manually. If it replied, there might be a sync delay or keyword mismatch.
+[2026-02-11T11:20:38.817Z] [INFO] 
 4. Disabling "System Help" Automation...
-[2026-02-11T10:58:47.778Z] [INFO] ✅ Automation disabled.
-[2026-02-11T10:58:47.778Z] [INFO] 
+[2026-02-11T11:20:39.436Z] [INFO] ✅ Automation disabled.
+[2026-02-11T11:20:39.437Z] [INFO] 
 --- 🏁 Cycle Complete ---
