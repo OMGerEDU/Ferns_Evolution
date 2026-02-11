@@ -704,7 +704,7 @@ async function setWebhook(instanceName, webhookUrl, enabled = true, events = nul
  */
 async function fetchSettings(instanceName) {
     const response = await retryWithBackoff(() =>
-        client.get(`/instance/settings/find/${instanceName}`, { customContext: { functionName: 'fetchSettings' } })
+        client.get(`/settings/find/${instanceName}`, { customContext: { functionName: 'fetchSettings' } })
     );
     return response.data;
 }
@@ -714,7 +714,7 @@ async function fetchSettings(instanceName) {
  */
 async function updateSettings(instanceName, settings) {
     const response = await retryWithBackoff(() =>
-        client.post(`/instance/settings/set/${instanceName}`, settings, { customContext: { functionName: 'updateSettings' } })
+        client.post(`/settings/set/${instanceName}`, settings, { customContext: { functionName: 'updateSettings' } })
     );
     return response.data;
 }
