@@ -29,7 +29,7 @@
 
 ## Phase 3: Verification
 - [x] **Bug Fixes**
-    - [x] **Fix Media Download 400 Error** (Fetch raw message from Evolution before download)
+    - [x] **Fix Media Downloattd 400 Error** (Fetch raw message from Evolution before download)
 - [x] **Manual Testing**
     - [x] Send a sticker
     - [x] Edit a sent text message
