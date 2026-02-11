@@ -93,9 +93,10 @@ router.post('/:instanceName', async (req, res) => {
             // Default to http://evolution_backend:3002 if not set (which fits our docker-compose)
             // const serverUrl = appConfig.serverUrl || 'http://evolution_backend:3002';
 
-            // FORCE internal Docker URL to avoid loopback/hairpin NAT issues with public domains
+            // Prefer public URL for Evolution API validation, fallback to internal if provided
+            const externalWebhookUrl = process.env.PUBLIC_WEBHOOK_URL;
             const internalWebhookUrl = 'http://evolution_backend:3002/api/webhooks/evolution';
-            const webhookUrl = internalWebhookUrl;
+            const webhookUrl = externalWebhookUrl || internalWebhookUrl;
 
             logger.info(`Syncing webhook to Evolution API for ${instanceName}`, { webhookUrl });
 
@@ -107,6 +108,7 @@ router.post('/:instanceName', async (req, res) => {
                 "qrcode.updated",
                 "messages.upsert",
                 "messages.update",
+                "contacts.update",
                 "send.message"
             ];
 

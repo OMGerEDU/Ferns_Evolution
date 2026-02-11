@@ -666,21 +666,60 @@ async function findWebhook(instanceName) {
  * Set Webhook for instance
  */
 async function setWebhook(instanceName, webhookUrl, enabled = true, events = null) {
+    const rawEvents = events || [
+        "start",
+        "connection.update",
+        "qrcode.updated",
+        "messages.upsert",
+        "messages.update",
+        "messages.delete",
+        "send.message",
+        "contacts.update",
+        "call"
+    ];
+
+    const eventMap = {
+        "start": "APPLICATION_STARTUP",
+        "connection.update": "CONNECTION_UPDATE",
+        "qrcode.updated": "QRCODE_UPDATED",
+        "messages.set": "MESSAGES_SET",
+        "messages.upsert": "MESSAGES_UPSERT",
+        "messages.edited": "MESSAGES_EDITED",
+        "messages.update": "MESSAGES_UPDATE",
+        "messages.delete": "MESSAGES_DELETE",
+        "send.message": "SEND_MESSAGE",
+        "contacts.set": "CONTACTS_SET",
+        "contacts.upsert": "CONTACTS_UPSERT",
+        "contacts.update": "CONTACTS_UPDATE",
+        "presence.update": "PRESENCE_UPDATE",
+        "chats.set": "CHATS_SET",
+        "chats.upsert": "CHATS_UPSERT",
+        "chats.update": "CHATS_UPDATE",
+        "chats.delete": "CHATS_DELETE",
+        "groups.upsert": "GROUPS_UPSERT",
+        "group.update": "GROUP_UPDATE",
+        "group.participants.update": "GROUP_PARTICIPANTS_UPDATE",
+        "labels.edit": "LABELS_EDIT",
+        "labels.association": "LABELS_ASSOCIATION",
+        "call": "CALL",
+        "typebot.start": "TYPEBOT_START",
+        "typebot.change.status": "TYPEBOT_CHANGE_STATUS",
+        "remove.instance": "REMOVE_INSTANCE",
+        "logout.instance": "LOGOUT_INSTANCE"
+    };
+
+    const mappedEvents = rawEvents
+        .map((evt) => eventMap[evt] || evt)
+        .filter(Boolean);
+
     const payload = {
-        url: webhookUrl,
-        webhook_by_events: true,
-        webhook_base64: true, // We want base64 for media handling
-        events: events || [
-            "start",
-            "connection.update",
-            "qrcode.updated",
-            "messages.upsert",
-            "messages.update",
-            "messages.delete",
-            "send.message",
-            "contacts.update",
-            "call"
-        ]
+        webhook: {
+            url: webhookUrl,
+            enabled: enabled !== false,
+            webhook_by_events: true,
+            webhook_base64: true,
+            events: mappedEvents
+        }
     };
 
     // If enabled is false, we might want to disable it, but Evolution API 
@@ -689,9 +728,6 @@ async function setWebhook(instanceName, webhookUrl, enabled = true, events = nul
     // The v2 endpoint typically just sets it. 
     // To "disable" effectively we might rely on the backend ignoring it, 
     // or we can assume this function is only called when enabled matches true.
-
-    // Check if we need to toggle enabled state explicitly if the API supports it
-    payload.enabled = enabled;
 
     const response = await retryWithBackoff(() =>
         client.post(`/webhook/set/${instanceName}`, payload, { customContext: { functionName: 'setWebhook' } })
