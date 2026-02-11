@@ -51,8 +51,27 @@ async function debugInstances() {
                 } catch (e) { }
             }
 
-            // Revert to simple logic: Just logging
-            console.log('   (Unable to probe internal API directly from outside)');
+            // 3. Restart Instance (Logout -> Connect)
+            if (inst.name === 'Omer 09022026') {
+                console.log('\n🔄 Restarting Instance to apply Sync Settings...');
+                try {
+                    console.log('   Logging out...');
+                    await axios.delete(`${BASE_URL}/api/instances/logout/${encodeURIComponent(inst.name)}`, {
+                        headers: { 'apikey': API_KEY }
+                    });
+                    console.log('   ✅ Logout successful. Waiting 5s...');
+                    await new Promise(r => setTimeout(r, 5000));
+
+                    console.log('   Connecting...');
+                    const connectRes = await axios.get(`${BASE_URL}/api/instances/connect/${encodeURIComponent(inst.name)}`, {
+                        headers: { 'apikey': API_KEY }
+                    });
+                    console.log('   ✅ Connect triggered:', connectRes.data);
+                } catch (rErr) {
+                    console.error('   ❌ Restart sequence failed:', rErr.message);
+                    if (rErr.response) console.error('      Data:', rErr.response.data);
+                }
+            }
         }
 
     } catch (error) {

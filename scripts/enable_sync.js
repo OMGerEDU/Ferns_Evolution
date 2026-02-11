@@ -26,17 +26,17 @@ async function enableSync() {
         // 2. Enable Sync
         console.log('\n2. Enabling "sync_full_history"...');
         const updateRes = await axios.post(`${BASE_URL}/api/instances/${encodeURIComponent(INSTANCE_NAME)}/settings`, {
-            "reject_call": false,
-            "groups_ignore": false,
-            "always_online": true,
-            "read_messages": false,
-            "read_status": false,
-            "sync_full_history": true
+            "rejectCall": false,
+            "groupsIgnore": false,
+            "alwaysOnline": true,
+            "readMessages": false,
+            "readStatus": false,
+            "syncFullHistory": true
         }, {
             headers: { 'apikey': API_KEY }
         });
 
-        console.log('Update Response:', updateRes.data);
+        console.log('Update Response:', JSON.stringify(updateRes.data, null, 2));
 
         // 3. Verify
         console.log('\n3. Verifying Update...');
@@ -45,10 +45,11 @@ async function enableSync() {
         });
 
         const newSettings = verifyRes.data.data;
-        if (newSettings.sync_full_history === true) {
-            console.log('✅ SUCCESS: "sync_full_history" is now enabled!');
+        if (newSettings.syncFullHistory === true) {
+            console.log('✅ SUCCESS: "syncFullHistory" is now enabled!');
         } else {
-            console.error('❌ FAILURE: "sync_full_history" is still disabled.');
+            console.log('Current Value:', newSettings.syncFullHistory);
+            console.error('❌ FAILURE: "syncFullHistory" is still disabled.');
         }
 
     } catch (error) {
