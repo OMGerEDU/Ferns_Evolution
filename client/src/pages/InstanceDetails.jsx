@@ -671,122 +671,121 @@ export default function InstanceDetails() {
                             </div>
                         )}
                     </div>
+                </div>
+            </div>
 
-                    {/* Built-in Automations Card */}
-                    <div className="bg-card border rounded-xl p-6 shadow-sm md:col-span-2 space-y-4">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-semibold text-lg flex items-center">
-                                <Zap className="mr-2 h-5 w-5 text-yellow-500" />
-                                Built-in Automations
-                            </h3>
-                            <Badge variant="outline" className="text-xs">Quick Start</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">Pre-made automations ready to use</p>
-                        <Separator />
+            {/* Built-in Automations Card */}
+            <div className="bg-card border rounded-xl p-6 shadow-sm w-full space-y-4">
+                <div className="flex justify-between items-center">
+                    <h3 className="font-semibold text-lg flex items-center">
+                        <Zap className="mr-2 h-5 w-5 text-yellow-500" />
+                        Built-in Automations
+                    </h3>
+                    <Badge variant="outline" className="text-xs">Quick Start</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">Pre-made automations ready to use</p>
+                <Separator />
 
-                        {loadingBuiltin ? (
-                            <div className="text-center py-8 text-muted-foreground">Loading...</div>
-                        ) : builtinTemplates?.length === 0 ? (
-                            <div className="text-center py-10 border border-dashed rounded-lg">
-                                <p className="text-muted-foreground">No built-in automations available.</p>
-                            </div>
-                        ) : (
-                        <div className="space-y-3">
-                            {builtinTemplates?.map(template => {
-                                const enabled = isBuiltinEnabled(template.id);
-                                const config = builtinConfigs[template.id] || getBuiltinConfig(template.id) || {};
-                                const isSaving = savingBuiltin === template.id;
-                                const isExpanded = !!expandedBuiltin[template.id];
+                {loadingBuiltin ? (
+                    <div className="text-center py-8 text-muted-foreground">Loading...</div>
+                ) : builtinTemplates?.length === 0 ? (
+                    <div className="text-center py-10 border border-dashed rounded-lg">
+                        <p className="text-muted-foreground">No built-in automations available.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {builtinTemplates?.map(template => {
+                            const enabled = isBuiltinEnabled(template.id);
+                            const config = builtinConfigs[template.id] || getBuiltinConfig(template.id) || {};
+                            const isSaving = savingBuiltin === template.id;
+                            const isExpanded = !!expandedBuiltin[template.id];
 
-                                    return (
-                                        <div
-                                            key={template.id}
-                                            className={cn(
-                                                "p-4 rounded-lg border transition-all",
-                                                enabled ? "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800" : "bg-muted/20"
-                                            )}
-                                        >
-                                            <div className="flex items-start gap-3">
-                                                <div className="pt-1">
-                                                    <Checkbox
-                                                        id={`builtin-${template.id}`}
-                                                        checked={enabled}
-                                                        onCheckedChange={(checked) => handleToggleBuiltin(template, checked)}
-                                                        disabled={isSaving}
-                                                    />
-                                                </div>
-                                                <div className="flex-1 space-y-3">
-                                                    <div className="flex items-start justify-between">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => toggleBuiltinExpand(template.id)}
-                                                            className="text-left cursor-pointer flex items-center gap-2"
-                                                            aria-expanded={isExpanded}
-                                                            aria-controls={`builtin-panel-${template.id}`}
-                                                        >
-                                                            <span className="text-xl">{template.icon}</span>
-                                                            <div>
-                                                                <div className="font-medium">{template.name}</div>
-                                                                <div className="text-xs text-muted-foreground mt-0.5">
-                                                                    {template.description}
-                                                                </div>
-                                                            </div>
-                                                        </button>
-                                                        <Badge
-                                                            variant={enabled ? "default" : "secondary"}
-                                                            className={cn(
-                                                                "ml-2",
-                                                                enabled && "bg-green-600 hover:bg-green-700 text-white"
-                                                            )}
-                                                        >
-                                                            {isSaving ? 'Saving...' : enabled ? 'Active' : 'Available'}
-                                                        </Badge>
+                            return (
+                                <div
+                                    key={template.id}
+                                    className={cn(
+                                        "p-4 rounded-lg border transition-all",
+                                        enabled ? "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800" : "bg-muted/20"
+                                    )}
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <div className="pt-1">
+                                            <Checkbox
+                                                id={`builtin-${template.id}`}
+                                                checked={enabled}
+                                                onCheckedChange={(checked) => handleToggleBuiltin(template, checked)}
+                                                disabled={isSaving}
+                                            />
+                                        </div>
+                                        <div className="flex-1 space-y-3">
+                                            <div className="flex items-start justify-between">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleBuiltinExpand(template.id)}
+                                                    className="text-left cursor-pointer flex items-center gap-2"
+                                                    aria-expanded={isExpanded}
+                                                    aria-controls={`builtin-panel-${template.id}`}
+                                                >
+                                                    <span className="text-xl">{template.icon}</span>
+                                                    <div>
+                                                        <div className="font-medium">{template.name}</div>
+                                                        <div className="text-xs text-muted-foreground mt-0.5">
+                                                            {template.description}
+                                                        </div>
                                                     </div>
+                                                </button>
+                                                <Badge
+                                                    variant={enabled ? "default" : "secondary"}
+                                                    className={cn(
+                                                        "ml-2",
+                                                        enabled && "bg-green-600 hover:bg-green-700 text-white"
+                                                    )}
+                                                >
+                                                    {isSaving ? 'Saving...' : enabled ? 'Active' : 'Available'}
+                                                </Badge>
+                                            </div>
 
-                                                    {isExpanded && (
-                                                        <div id={`builtin-panel-${template.id}`} className="space-y-2 pl-7">
-                                                            {template.config_schema?.properties && Object.entries(template.config_schema.properties).map(([key, field]) => (
-                                                                <div key={key} className="space-y-1">
-                                                                    <label className="text-xs font-medium text-muted-foreground">
-                                                                        {field.label || key}
-                                                                    </label>
-                                                                    <Input
-                                                                        placeholder={field.placeholder}
-                                                                        value={config[key] || ''}
-                                                                        onChange={(e) => {
-                                                                            updateBuiltinConfig(template.id, key, e.target.value);
-                                                                            if (enabled && e.target.value) {
-                                                                                const timeoutId = setTimeout(() => {
-                                                                                    handleToggleBuiltin(template, true);
-                                                                                }, 1000);
-                                                                                return () => clearTimeout(timeoutId);
-                                                                            }
-                                                                        }}
-                                                                        disabled={isSaving}
-                                                                        className="h-8 text-sm"
-                                                                    />
-                                                                    {field.description && (
-                                                                        <p className="text-xs text-muted-foreground">
-                                                                            {field.description}
-                                                                        </p>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                            {!template.config_schema?.properties && (
-                                                                <p className="text-xs text-muted-foreground">No configuration required.</p>
+                                            {isExpanded && (
+                                                <div id={`builtin-panel-${template.id}`} className="space-y-2 pl-7">
+                                                    {template.config_schema?.properties && Object.entries(template.config_schema.properties).map(([key, field]) => (
+                                                        <div key={key} className="space-y-1">
+                                                            <label className="text-xs font-medium text-muted-foreground">
+                                                                {field.label || key}
+                                                            </label>
+                                                            <Input
+                                                                placeholder={field.placeholder}
+                                                                value={config[key] || ''}
+                                                                onChange={(e) => {
+                                                                    updateBuiltinConfig(template.id, key, e.target.value);
+                                                                    if (enabled && e.target.value) {
+                                                                        const timeoutId = setTimeout(() => {
+                                                                            handleToggleBuiltin(template, true);
+                                                                        }, 1000);
+                                                                        return () => clearTimeout(timeoutId);
+                                                                    }
+                                                                }}
+                                                                disabled={isSaving}
+                                                                className="h-8 text-sm"
+                                                            />
+                                                            {field.description && (
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    {field.description}
+                                                                </p>
                                                             )}
                                                         </div>
+                                                    ))}
+                                                    {!template.config_schema?.properties && (
+                                                        <p className="text-xs text-muted-foreground">No configuration required.</p>
                                                     )}
                                                 </div>
-                                            </div>
+                                            )}
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
-                </div>
-
+                )}
             </div>
 
             {/* Automation History */}
@@ -875,5 +874,5 @@ export default function InstanceDetails() {
                 )}
             </div>
         </div>
-        );
+    );
 }
