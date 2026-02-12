@@ -17,7 +17,7 @@ const evolutionAdapter = {
 
         // Evolution API can send key at top-level (data.key) or nested (data.message.key)
         const key = data.key || data.message?.key;
-        if (!key || key.fromMe) return null; // Loop prevention
+        if (!key) return null;
 
         // Message content may be nested (data.message.message) or direct (data.message)
         const messageContent = data.message?.message ? data.message.message : data.message;

@@ -31,6 +31,13 @@ const automationEngine = {
             for (const rule of rules) {
                 // Compatibility layer: Handle both legacy triggers and new graph structure
                 const trigger = rule.trigger;
+
+                // 1.1 Outgoing Message Check
+                // By default, ignore outgoing messages unless explicitly enabled in rule config
+                if (event.fromMe && !rule.config?.include_outgoing) {
+                    continue;
+                }
+
                 if (!evaluateTrigger(trigger, event)) continue;
 
                 // 2. Initial Context (per rule, includes config)
