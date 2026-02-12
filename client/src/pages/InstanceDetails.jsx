@@ -235,10 +235,10 @@ export default function InstanceDetails() {
     };
 
     // Handle toggling built-in automation
-    const handleToggleBuiltin = async (template, enabled) => {
+    const handleToggleBuiltin = async (template, enabled, overrideConfig = null) => {
         try {
             setSavingBuiltin(template.id);
-            const config = builtinConfigs[template.id] || getBuiltinConfig(template.id) || {};
+            const config = overrideConfig || builtinConfigs[template.id] || getBuiltinConfig(template.id) || {};
 
             if (enabled) {
                 await api.post(`/automations/builtin/${template.id}/enable`, {
@@ -747,8 +747,11 @@ export default function InstanceDetails() {
                                                                 onCheckedChange={(checked) => {
                                                                     updateBuiltinConfig(template.id, 'include_outgoing', checked);
                                                                     if (enabled) {
+                                                                        const currentConfig = builtinConfigs[template.id] || getBuiltinConfig(template.id) || {};
+                                                                        const newConfig = { ...currentConfig, include_outgoing: checked };
+
                                                                         const timeoutId = setTimeout(() => {
-                                                                            handleToggleBuiltin(template, true);
+                                                                            handleToggleBuiltin(template, true, newConfig);
                                                                         }, 500);
                                                                         return () => clearTimeout(timeoutId);
                                                                     }
@@ -773,10 +776,14 @@ export default function InstanceDetails() {
                                                                     placeholder={field.placeholder}
                                                                     value={config[key] || ''}
                                                                     onChange={(e) => {
-                                                                        updateBuiltinConfig(template.id, key, e.target.value);
-                                                                        if (enabled && e.target.value) {
+                                                                        const val = e.target.value;
+                                                                        updateBuiltinConfig(template.id, key, val);
+                                                                        if (enabled && val) {
+                                                                            const currentConfig = builtinConfigs[template.id] || getBuiltinConfig(template.id) || {};
+                                                                            const newConfig = { ...currentConfig, [key]: val };
+
                                                                             const timeoutId = setTimeout(() => {
-                                                                                handleToggleBuiltin(template, true);
+                                                                                handleToggleBuiltin(template, true, newConfig);
                                                                             }, 1000);
                                                                             return () => clearTimeout(timeoutId);
                                                                         }
