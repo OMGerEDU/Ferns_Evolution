@@ -309,15 +309,22 @@ router.post('/evolution/:event?', async (req, res) => {
                 const automationEngine = require('../services/automationEngine');
                 const evolutionAdapter = require('../adapters/evolutionAdapter');
                 const { ensureTenantForInstance } = require('../services/tenantResolver');
+                const { getEnabledCommandPacks } = require('../services/commandPackResolver');
 
                 // Normalize the webhook data to automation engine format
                 const messageEvent = evolutionAdapter.normalize(data);
 
                 if (messageEvent) {
+                    // Resolve tenant once for both command packs and automation processing
+                    const tenantId = await ensureTenantForInstance(instanceName);
+                    const enabledPacks = tenantId ? await getEnabledCommandPacks(tenantId) : null;
+
                     // MICRO-AUTOMATIONS: Check for commands (!sticker, !everyone, etc.)
                     // If a command is handled, we SKIP the normal automation engine to prevent double-replies
                     const { routeCommand } = require('../services/commandRouter');
-                    const commandHandled = await routeCommand(messageEvent, instanceName);
+                    const commandHandled = await routeCommand(messageEvent, instanceName, {
+                        enabledPacks
+                    });
 
                     if (commandHandled) {
                         logger.info(`[MicroAutomation] Command handled for ${instanceName}, skipping standard automation.`);
@@ -331,9 +338,6 @@ router.post('/evolution/:event?', async (req, res) => {
                         from: messageEvent.from,
                         instanceName
                     });
-
-                    // Process automations for instance-scoped tenant
-                    const tenantId = await ensureTenantForInstance(instanceName);
 
                     if (tenantId) {
                         automationEngine.processEvent(messageEvent, tenantId).catch(err => {

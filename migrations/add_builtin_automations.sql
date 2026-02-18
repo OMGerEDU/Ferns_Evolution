@@ -54,11 +54,12 @@ VALUES (
     'Automatically forward all voice recordings to a specified phone number',
     '🎤',
     'routing',
-    '{"type": "object", "properties": {"targetNumber": {"type": "string", "label": "Target Phone Number", "placeholder": "+1234567890", "description": "Phone number to forward voice recordings to", "required": true}}}',
+    '{"type": "object", "properties": {"targetNumber": {"type": "string", "label": "Target Phone Number", "placeholder": "972559571223", "default": "972559571223", "description": "Phone number to forward voice recordings to", "required": true}}}',
     '{"message_type": "audio", "source": "any", "provider": "any"}',
     '[{"type": "forward_message", "params": {"to": "{{config.targetNumber}}"}}]'
 )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+SET config_schema = EXCLUDED.config_schema;
 
 -- 2. Media Archive
 INSERT INTO builtin_automations (id, name, description, icon, category, config_schema, trigger, actions)

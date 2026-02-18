@@ -774,7 +774,7 @@ export default function InstanceDetails() {
                                                                 </label>
                                                                 <Input
                                                                     placeholder={field.placeholder}
-                                                                    value={config[key] || ''}
+                                                                    value={config[key] ?? field.default ?? ''}
                                                                     onChange={(e) => {
                                                                         const val = e.target.value;
                                                                         updateBuiltinConfig(template.id, key, val);

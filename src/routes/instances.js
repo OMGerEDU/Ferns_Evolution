@@ -244,11 +244,104 @@ router.post('/:name/rescan-qr', async (req, res, next) => {
 
         logger.info('Rescanning QR code', { instanceName: name });
 
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const waitForDisconnect = async (instanceName, maxAttempts = 20, delayMs = 500) => {
+            let attempts = 0;
+            while (attempts < maxAttempts) {
+                try {
+                    const stateData = await evolution.getConnectionState(instanceName);
+                    const state = stateData?.state || stateData?.instance?.state || stateData?.connectionState;
+                    if (state && state !== 'open' && state !== 'connecting') {
+                        return state;
+                    }
+                } catch (err) {
+                    logger.warn('Failed to fetch connection state during rescan', { instanceName, error: err.message });
+                }
+                await sleep(delayMs);
+                attempts++;
+            }
+            return null;
+        };
+
+        // Logout first to force a fresh QR for existing instances
+        try {
+            const logoutResult = await evolution.logout(name);
+            logger.info('Logout triggered for rescan', { instanceName: name, result: logoutResult });
+        } catch (err) {
+            if (err.response?.status === 404) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Instance not found',
+                    code: 'INSTANCE_NOT_FOUND',
+                });
+            }
+            logger.warn('Logout failed during rescan; continuing', { instanceName: name, error: err.message });
+        }
+
+        const disconnectState = await waitForDisconnect(name);
+        if (!disconnectState) {
+            logger.warn('Instance still connected after logout, attempting restart', { instanceName: name });
+            try {
+                await evolution.restart(name);
+            } catch (err) {
+                logger.warn('Restart failed during rescan; continuing', { instanceName: name, error: err.message });
+            }
+            await waitForDisconnect(name);
+        }
+
         const qrData = await evolution.connect(name);
+        logger.info('Connect response received (rescan)', {
+            instanceName: name,
+            hasBase64: !!qrData.base64,
+            hasPairingCode: !!qrData.pairingCode,
+            hasCode: !!qrData.code,
+            state: qrData?.instance?.state || qrData?.state
+        });
+
+        let finalResult = qrData;
+        if (!qrData.base64 && !qrData.pairingCode && !qrData.code) {
+            // Poll webhook store for up to 10 seconds
+            logger.info('Polling webhook store for QR code (rescan)...', { instanceName: name });
+            const { qrCodeStore } = require('./webhooks');
+
+            const maxAttempts = 20; // 20 * 500ms = 10 seconds
+            let attempts = 0;
+
+            while (attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                const qrDataFromWebhook = qrCodeStore.get(name);
+                if (qrDataFromWebhook && (qrDataFromWebhook.qrcode || qrDataFromWebhook.pairingCode)) {
+                    logger.info('QR/Pairing code received from webhook (rescan)!', {
+                        hasQr: !!qrDataFromWebhook.qrcode,
+                        hasPairing: !!qrDataFromWebhook.pairingCode
+                    });
+
+                    finalResult = {
+                        ...qrData,
+                        qrcode: qrDataFromWebhook.qrcode ? { base64: qrDataFromWebhook.qrcode } : qrData.qrcode,
+                        pairingCode: qrDataFromWebhook.pairingCode,
+                        code: qrDataFromWebhook.code
+                    };
+                    break;
+                }
+                attempts++;
+            }
+
+            if (attempts >= maxAttempts) {
+                logger.warn('Timeout waiting for QR code (rescan)', { instanceName: name });
+            }
+        } else if (qrData.base64) {
+            // Normalize for UI expectations
+            finalResult = {
+                ...qrData,
+                qrcode: { base64: qrData.base64 }
+            };
+        }
 
         res.json({
             success: true,
-            data: qrData,
+            data: finalResult,
         });
     } catch (error) {
         if (error.response?.status === 404) {

@@ -105,7 +105,16 @@ router.post('/:id/enable', async (req, res) => {
 
         const template = templateRows[0];
 
-        // TODO: Validate config against config_schema (optional enhancement)
+        // Apply defaults from config_schema when values are not provided
+        if (template.config_schema?.properties) {
+            const defaults = {};
+            for (const [key, field] of Object.entries(template.config_schema.properties)) {
+                if (field && Object.prototype.hasOwnProperty.call(field, 'default')) {
+                    defaults[key] = field.default;
+                }
+            }
+            config = { ...defaults, ...config };
+        }
 
         // Check if this automation is already enabled for this tenant
         const { rows: existingRows } = await db.query(

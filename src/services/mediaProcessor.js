@@ -97,6 +97,36 @@ class MediaProcessor {
     }
 
     /**
+     * Write base64 content to a temp file
+     */
+    async writeBase64ToFile(base64, extension = 'tmp') {
+        const fileName = `input_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
+        const filePath = path.join(this.tempDir, fileName);
+        const cleanBase64 = String(base64).replace(/^data:.*;base64,/, '');
+        await fs.promises.writeFile(filePath, Buffer.from(cleanBase64, 'base64'));
+        return filePath;
+    }
+
+    /**
+     * Convert video to WebP sticker-compatible format
+     */
+    async convertVideoToWebp(inputPath) {
+        const outputFileName = `sticker_${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
+        const outputPath = path.join(this.tempDir, outputFileName);
+
+        // Keep it short and WhatsApp-friendly for sticker conversion.
+        const command = `ffmpeg -i "${inputPath}" -t 6 -vf "fps=12,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:-1:-1:color=black@0.0" -an -c:v libwebp -lossless 0 -q:v 50 -preset default -loop 0 -y "${outputPath}"`;
+        logger.debug('Executing video->webp conversion', { command });
+        await execPromise(command);
+
+        if (!fs.existsSync(outputPath)) {
+            throw new Error('Video conversion failed: WebP output not created');
+        }
+
+        return outputPath;
+    }
+
+    /**
      * Delete files
      */
     async cleanup(paths) {
@@ -132,6 +162,21 @@ class MediaProcessor {
             return base64;
         } finally {
             // 4. Cleanup
+            await this.cleanup([inputPath, outputPath]);
+        }
+    }
+
+    /**
+     * Convert a video base64 payload to WebP base64 for stickers
+     */
+    async processVideoBase64ForSticker(videoBase64) {
+        let inputPath = null;
+        let outputPath = null;
+        try {
+            inputPath = await this.writeBase64ToFile(videoBase64, 'mp4');
+            outputPath = await this.convertVideoToWebp(inputPath);
+            return await this.getFileAsBase64(outputPath);
+        } finally {
             await this.cleanup([inputPath, outputPath]);
         }
     }

@@ -309,6 +309,12 @@ async function executeNode(node, event, context) {
                 return true;
             }
 
+            case 'enable_command_pack': {
+                // Command packs are enforced by commandRouter using enabled automations.
+                // This action remains a no-op so templates stay executable without warnings.
+                return true;
+            }
+
             case 'forward_message': {
                 const adapter = adapters[event.provider];
                 if (!adapter) {
@@ -334,15 +340,62 @@ async function executeNode(node, event, context) {
 
                 try {
                     if (messageType === 'audio') {
-                        // Get audio URL from event
-                        const audioUrl = event.content?.url || event.raw?.data?.message?.audioMessage?.url;
-                        if (!audioUrl) {
-                            logger.warn('No audio URL found for forwarding');
-                            return false;
-                        }
-
                         const evolution = require('../services/evolution');
-                        await evolution.sendAudio(event.instanceName, targetNumber, audioUrl);
+                        const mediaProcessor = require('../services/mediaProcessor');
+                        const rawData = event.raw?.data || {};
+                        const rawMessage = rawData.message?.message || rawData.message || null;
+                        const rawKey = rawData.key || rawData.message?.key || {
+                            id: event.id,
+                            remoteJid: event.remoteJid || event.from,
+                            participant: event.sender_jid
+                        };
+
+                        try {
+                            // Preferred path: resolve media via Evolution from the original message object
+                            // so encrypted WhatsApp URLs (.enc) do not break forwarding.
+                            if (rawMessage && rawKey?.id) {
+                                logger.info('Resolving audio as base64 for forwarding', { instanceName: event.instanceName });
+                                const mediaResult = await evolution.getBase64(event.instanceName, {
+                                    key: rawKey,
+                                    message: rawMessage
+                                });
+                                if (mediaResult?.base64) {
+                                    await evolution.sendMedia(event.instanceName, targetNumber, mediaResult.base64, {
+                                        mediatype: 'audio',
+                                        fileName: 'audio.mp3',
+                                        mimetype: mediaResult.mimetype || 'audio/mp4'
+                                    });
+                                    logger.info('Message forwarded successfully', { to: targetNumber, type: messageType });
+                                    return true;
+                                }
+                            }
+
+                            const audioUrl = event.content?.url || rawData.message?.audioMessage?.url;
+                            if (!audioUrl) {
+                                logger.warn('No audio URL found for forwarding');
+                                return false;
+                            }
+
+                            logger.info('Converting audio URL for forwarding', { instanceName: event.instanceName });
+                            const audioBase64 = await mediaProcessor.processAudioForWhatsApp(audioUrl);
+                            await evolution.sendMedia(event.instanceName, targetNumber, audioBase64, {
+                                mediatype: 'audio',
+                                fileName: 'audio.mp3',
+                                mimetype: 'audio/mp4'
+                            });
+                        } catch (conversionError) {
+                            logger.error('Audio conversion failed, falling back to URL', { error: conversionError.message });
+                            const audioUrl = event.content?.url || rawData.message?.audioMessage?.url;
+                            if (!audioUrl) {
+                                logger.warn('No audio URL found for fallback forwarding');
+                                return false;
+                            }
+                            await evolution.sendMedia(event.instanceName, targetNumber, audioUrl, {
+                                mediatype: 'audio',
+                                fileName: 'audio.mp3',
+                                mimetype: 'audio/mp4'
+                            });
+                        }
                     } else if (messageType === 'image') {
                         const imageUrl = event.content?.url || event.raw?.data?.message?.imageMessage?.url;
                         const caption = event.content?.text || event.raw?.data?.message?.imageMessage?.caption || '';
